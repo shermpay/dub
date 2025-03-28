@@ -1,0 +1,11 @@
+.*
+!.gitignore
+
+# generated output
+out/
+
+# don't include dependencies
+third_party/
+
+# bazel
+MODULE.bazel.lock

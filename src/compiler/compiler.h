@@ -95,13 +95,13 @@ class Compiler final {
     return Compiler(compiler::Parser(),
                     std::move(target_gen.value()),
                     logger);
-  };
+  }
 
   static absl::StatusOr<Compiler> MakeDefaultJit(std::ostream& logger) {
     return Compiler(compiler::Parser(),
                     nullptr,
                     logger);
-  };
+  }
 
   // Compiles a list of forms representing a module.
   absl::Status CompileModule(const List& forms);

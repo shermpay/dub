@@ -15,24 +15,15 @@ register_toolchains(
     "//toolchain:cc_toolchain_for_linux_x86_64"
 )
 
-bazel_dep(name = "rules_python", version = "0.31.0")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "rules_python", version = "1.0.0")
 
-bazel_dep(name = "googletest")
-git_override(
-    module_name = "googletest",
-    remote = "https://github.com/google/googletest.git",
-    commit = "b75ecf1bed2fcd416b66c86cb6fe79122abf132e",
-)
+bazel_dep(name = "googletest", version = "1.15.2")
 
 bazel_dep(
     name = "abseil-cpp",
     repo_name = "absl",
-)
-
-git_override(
-    module_name = "abseil-cpp",
-    remote = "https://github.com/abseil/abseil-cpp.git",
-    commit = "4358cb2f8cb304e64d9a2d2845f472297724e19f",
+    version = "20240722.0.bcr.2",
 )
 
 # bazel_dep(
@@ -40,6 +31,7 @@ git_override(
 #     repo_name = "llvm",
 #     version = "17.0.3",
 # )
+
 
 # Hedron's Compile Commands Extractor for Bazel
 # https://github.com/hedronvision/bazel-compile-commands-extractor

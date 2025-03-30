@@ -11,7 +11,7 @@ const Symbol& Symbol::Get(std::string name) {
     return new_iter->second;
   }
   return iter->second;
-};
+}
 
 std::ostream& operator<<(std::ostream& os, const Symbol& symbol) {
   os << symbol.value();

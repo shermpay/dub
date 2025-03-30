@@ -11,7 +11,7 @@ dub::List List(Args... args) {
   dub::MutableList mlist;
   (mlist.Append(dub::Form(args)), ...);
   return dub::List(mlist);
-};
+}
 
 static const dub::Symbol* Symbol(const std::string& s) {
   return &dub::Symbol::Get(s);
@@ -25,11 +25,11 @@ using dub::Expression;
 
 static Expression Literal(const Constant::Literal& value) {
   return Expression(Constant(value));
-};
+}
 
 static Expression Name(std::string name) {
   return Expression(Symbol(name));
-};
+}
 
 static Expression If(Expression cond,
                      Expression then,
@@ -38,7 +38,7 @@ static Expression If(Expression cond,
       std::move(cond),
       std::move(then),
       std::move(els)));
-};
+}
 
 }  // namespace expr
 

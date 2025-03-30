@@ -1,2 +1,15 @@
 #+TITLE: dub task tracking
 * TODO Remove absl dependency and rely entirely on LLVM.
+  Rationale: remove dependency, reduce build times, reduce binary size and also gain knowledge of LLVM APIs.
+
+** absl::Format and AbslStringify
+   https://llvm.org/docs/ProgrammersManual.html#formatting-strings-the-formatv-function
+   Use ~formatv~ and ~format_provider~ (See form_format.h for an example)
+** absl::node_hash_map and absl::flat_hash_map 
+   https://llvm.org/docs/ProgrammersManual.html#map-like-containers-std-map-densemap-etc
+
+** absl::Status
+   https://llvm.org/docs/ProgrammersManual.html#recoverable-errors
+
+** absl::Span
+   I think this can be replaced with llvm::ArrayRef

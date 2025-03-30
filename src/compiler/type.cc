@@ -17,27 +17,27 @@ Type& Unit() {
 Type& Bool() {
   static Type t(Basic::kBool);
   return t;
-};
+}
 
 Type& I8() {
   static Type t(Basic::kI8);
   return t;
-};
+}
 
 Type& I16() {
   static Type t(Basic::kI16);
   return t;
-};
+}
 
 Type& I32() {
   static Type t(Basic::kI32);
   return t;
-};
+}
 
 Type& I64() {
   static Type t(Basic::kI64);
   return t;
-};
+}
 
 std::vector<std::pair<const Symbol*, Type>> BuiltinTypes() noexcept {
   return std::vector{
@@ -92,7 +92,7 @@ class ArrayConstructor : public Constructor {
 Constructor* ArrayCtor() {
   static ArrayConstructor ctor;
   return &ctor;
-};
+}
 
 
 class FnConstructor : public Constructor {
@@ -147,7 +147,7 @@ Type Fn::MakeType(Type::Tuple params, Type ret) {
   args.push_back(Type(params));
   args.push_back(ret);
   return Type(Parameterized<Type>(kFnTag, args), Property::kCallable);
-};
+}
 
 absl::StatusOr<Fn> Fn::Get(Type::Parameterized& underlying) {
   if (*underlying.name != Symbol::Get("Fn")) {

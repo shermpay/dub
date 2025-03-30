@@ -38,7 +38,7 @@ class Constant final {
     }, literal);
   }
 
-  explicit Constant(const Literal& literal) : literal_(literal) {};
+  explicit Constant(const Literal& literal) : literal_(literal) {}
   bool operator==(const Constant& rhs) const {
     return this->literal_ == rhs.literal_;
   }

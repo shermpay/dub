@@ -20,10 +20,10 @@ class Module final {
   using ExprInfoOwner = std::unique_ptr<compiler::ExprInfo>;
   using ExprInfoList = std::vector<ExprInfoOwner>;
 
-  explicit Module()  {};
+  explicit Module()  {}
   explicit Module(std::unique_ptr<ModuleDecl> header) :
       header_(std::move(header))
-  {};
+  {}
 
   Module(std::unique_ptr<ModuleDecl> header,
          std::vector<Expression> contents,
@@ -31,7 +31,7 @@ class Module final {
       header_(std::move(header)),
       contents_(std::move(contents)),
       expr_infos_(std::move(expr_infos))
-       {};
+       {}
 
   static Module WithName(const Symbol& name) {
     return Module(std::make_unique<ModuleDecl>(name));
@@ -63,7 +63,7 @@ class Module final {
 
   void SetHeader(ModuleDecl& header) {
     this->header_ = std::make_unique<ModuleDecl>(std::move(header));
-  };
+  }
 
   Expression MakeExpression(Expression::Kind kind,
                              Module::ExprInfoOwner info);
@@ -71,7 +71,7 @@ class Module final {
   Expression& AddExpression(Expression expr) {
     this->contents_.push_back(std::move(expr));
     return this->contents_.back();
-  };
+  }
 
   const ExprId NextId() const noexcept {
     return ExprId {

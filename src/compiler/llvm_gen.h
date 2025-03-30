@@ -35,7 +35,7 @@ class LlvmGen final {
       mode_(mode),
       module_(typed_module->module_ptr()),
       typed_module_(typed_module)
-  {};
+  {}
 
   llvm::Type* GenerateType(Type type);
 
@@ -73,3 +73,4 @@ absl::Status WriteBitcode(const llvm::Module& ll_module, llvm::raw_fd_stream* st
 }  // namespace dub::compiler
 
 #endif /* DUB_COMPILER_LLVM_GEN_H_ */
+

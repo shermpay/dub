@@ -23,7 +23,7 @@ void SourceReader::OnNext(char c) {
     column_++;
     cur_line_ += c;
   }
-};
+}
 
 void SourceReader::NewLine() {
   line_++;
@@ -40,7 +40,7 @@ void SourceReader::Enter() {
     },
   };
   info_stack_.push_back(info);
-};
+}
 
 void SourceReader::Exit(Form& form) {
   auto info = info_stack_.back();
@@ -93,7 +93,7 @@ absl::StatusOr<std::optional<Form>> Reader::ReadForm() {
   auto f = Form(std::move(value.value()));
   if (source_reader_) source_reader_->Exit(f);
   return f;
-};
+}
 
 absl::StatusOr<List> Reader::ReadAll() {
   MutableList mlist;
@@ -106,7 +106,7 @@ absl::StatusOr<List> Reader::ReadAll() {
 	mlist.Append(std::move(f.value().value()));
    } while (!Done());
   return List(mlist);
-};
+}
 
 char Reader::Next() {
   char c = GetChar();
@@ -141,13 +141,13 @@ char Reader::Next() {
       break;
   }
   return c;
-};
+}
 
 const char kTab = 0x09;
 const char kNewline = 0x0a;
 const char kCarriageReturn = 0x0d;
 
-std::optional<char> EscapeChar(char c) {
+static std::optional<char> EscapeChar(char c) {
   switch (c) {
     case '\\':
     case '"':
@@ -186,7 +186,7 @@ absl::StatusOr<std::string> Reader::ReadString() {
     c = GetChar();
   }
   return result;
-};
+}
 
 
 absl::StatusOr<Form::Value> Reader::ReadLiteralOrSymbol(char c) {
@@ -261,7 +261,7 @@ absl::StatusOr<Form::Value> Reader::ReadLiteralOrSymbol(char c) {
   }
 
   return absl::InvalidArgumentError("failed to read");
-};
+}
 
 absl::StatusOr<List> Reader::ReadList() {
   MutableList forms;
@@ -280,7 +280,7 @@ absl::StatusOr<List> Reader::ReadList() {
   Next();
 
   return List(forms);
-};
+}
 
 absl::StatusOr<Vector> Reader::ReadVector() {
   Vector forms;
@@ -299,7 +299,7 @@ absl::StatusOr<Vector> Reader::ReadVector() {
   Next();
 
   return forms;
-};
+}
 
 std::string Reader::StateToString(const Reader::State& state) {
   switch (state) {
@@ -328,5 +328,5 @@ std::string Reader::StateToString(const Reader::State& state) {
 std::ostream& operator<<(std::ostream& os, const Reader::State& state) {
   os << Reader::StateToString(state);
   return os;
-};
+}
 }  // namespace dub

@@ -91,7 +91,7 @@ struct ConvertType final {
                                  /*isPacked=*/false);
   }
 
-  llvm::Type *operator()(Constant type) { return nullptr; }
+  llvm::Type *operator()(Constant type) { (void)type; return nullptr; }
 };
 
 } // namespace
@@ -111,6 +111,7 @@ std::optional<llvm::AllocaInst *> LlvmGen::LookupLocal(const Symbol &name) {
 absl::StatusOr<llvm::Value *>
 LlvmGen::BuiltinFuncGen(BuiltinInfo info, const Symbol &name,
                         const absl::Span<const Expression> args) {
+  (void)name;
   std::cout << "BuiltinFuncGen: " << static_cast<int>(info.kind()) << std::endl;
   switch (info.kind()) {
   case Builtin::kIntAdd: {
@@ -142,11 +143,13 @@ struct TypeDefGen final {
     return type_def.type().Match(*this);
   }
 
-  absl::StatusOr<llvm::Type *> operator()(const auto &type) { return nullptr; }
+  absl::StatusOr<llvm::Type *> operator()(const auto &type) { (void)type; return nullptr; }
   absl::StatusOr<llvm::Type *> operator()(const Type::Tuple &tuple) {
+	(void)tuple;
     return absl::UnimplementedError("typedef tuple");
   }
   absl::StatusOr<llvm::Type *> operator()(const Type::Struct &st) {
+	(void)st;
     return absl::UnimplementedError("typedef struct");
   }
 };
@@ -162,6 +165,7 @@ struct ExprGen final {
   }
 
   absl::StatusOr<llvm::Value *> operator()(const Nil &x) const {
+	(void)x;
     return llvm::ConstantPointerNull::get(
         llvm::PointerType::get(*llgen.context_, /*AddressSpace=*/0));
   }
@@ -201,11 +205,12 @@ struct ExprGen final {
   }
 
   absl::StatusOr<llvm::Value *>
-  operator()(const MemberAccess<Expression> &x) const {
+  operator()(const MemberAccess &x) const {
+	(void)x;
     return absl::UnimplementedError("member access is not implemented");
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const Call<Expression> &expr) const {
+  absl::StatusOr<llvm::Value *> operator()(const Call &expr) const {
     auto &target = expr.target();
     std::cout << "Codegen call: " << target << std::endl;
 
@@ -253,10 +258,11 @@ struct ExprGen final {
     return llgen.builder_->CreateCall(
         callee, args, callee->getReturnType()->isVoidTy() ? "" : "calltmp");
   }
-  absl::StatusOr<llvm::Value *> operator()(const If<Expression> &expr) const {
+  absl::StatusOr<llvm::Value *> operator()(const If &expr) const {
+	(void)expr;
     return absl::UnimplementedError("Codegen If");
   }
-  absl::StatusOr<llvm::Value *> operator()(const Fn<Expression> &fn) const {
+  absl::StatusOr<llvm::Value *> operator()(const Fn &fn) const {
     std::cout << "Codegen Fn" << std::endl;
     llvm::Function *ll_func = llgen.ll_module_->getFunction(fn.name()->value());
     auto bb = llvm::BasicBlock::Create(*llgen.context_, "entry", ll_func);
@@ -276,7 +282,7 @@ struct ExprGen final {
   }
 
   absl::StatusOr<llvm::Value *>
-  operator()(const Return<Expression> &expr) const {
+  operator()(const Return &expr) const {
     // TODO: Handle void.
     // TODO: Handle empty return.
     if (expr.HasValue()) {
@@ -290,7 +296,7 @@ struct ExprGen final {
   }
 
   absl::StatusOr<llvm::Value *>
-  operator()(const VarDef<Expression> &expr) const {
+  operator()(const VarDef &expr) const {
     auto type = llgen.typed_module_->TypeInfoRef().LookupName(expr.name());
     if (!type.has_value()) {
       return absl::FailedPreconditionError(
@@ -302,7 +308,7 @@ struct ExprGen final {
     return inst;
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const Set<Expression> &expr) const {
+  absl::StatusOr<llvm::Value *> operator()(const Set &expr) const {
     auto place = std::visit(
         AssignableVisitor{
             [this, &expr](const Symbol *name) -> absl::StatusOr<llvm::Value *> {
@@ -314,7 +320,7 @@ struct ExprGen final {
 
               return alloca_inst.value();
             },
-            [this, &expr](const MemberAccess<Expression> &access)
+            [this, &expr](const MemberAccess &access)
                 -> absl::StatusOr<llvm::Value *> {
               // %2 = alloca %struct.Point, align 4
               // %3 = getelementptr inbounds %struct.Point, ptr %2, i32 0, i32 0
@@ -354,6 +360,7 @@ struct ExprGen final {
   }
 
   absl::StatusOr<llvm::Value *> operator()(const ModuleDecl &expr) const {
+	(void)expr;
     return nullptr;
   }
 
@@ -387,7 +394,8 @@ struct ExprGen final {
     return nullptr;
   }
   absl::StatusOr<llvm::Value *>
-  operator()(const Array<Expression> &expr) const {
+  operator()(const Array &expr) const {
+	(void)expr;
     return absl::UnimplementedError("Codegen Array");
   }
 };
@@ -397,6 +405,7 @@ llvm::Type *LlvmGen::GenerateType(Type type) {
 }
 
 void LlvmGen::GenerateModule(const Module &mod) {
+  (void)mod;
   // ll_module_ = std::make_unique<llvm::Module>(mod.Header().name->value(),
   // *context_);
 

@@ -85,6 +85,16 @@ cc_test(
 )
 
 cc_library(
+    name = "form_format",
+    srcs = ["form_format.cc"],
+    hdrs = ["form_format.h"],
+    deps = [
+        ":form",
+        ":symbol",
+    ],
+)
+
+cc_library(
     name = "symbol",
     srcs = ["symbol.cc"],
     hdrs = ["symbol.h"],

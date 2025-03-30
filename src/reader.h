@@ -22,7 +22,7 @@ class SourceReader {
     auto& pool = FilenamesPool();
     auto [iter, _] = pool.insert(name);
     name_ = *iter;
-  };
+  }
 
   void OnNext(char c);
   void NewLine();
@@ -53,7 +53,7 @@ class Reader {
 
   bool Done() {
     return stream_.eof();
-  };
+  }
 
   void EnableLocation(SourceReader reader) {
     source_reader_ = std::make_unique<SourceReader>(std::move(reader));
@@ -77,7 +77,7 @@ class Reader {
     char c = stream_.get();
     if (source_reader_) source_reader_->OnNext(c);
     return c;
-  };
+  }
 
   // Reads a single line of comment
   void ReadComment();

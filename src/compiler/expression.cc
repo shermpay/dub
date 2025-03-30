@@ -8,7 +8,7 @@ namespace dub {
 TypeExpr TypeUnit() {
   static TypeExpr t(Symbol::Get("unit"));
   return t;
-};
+}
 
 TypeExpr::Struct::Struct() : fields_(std::vector<TypeExpr::NameType>()) {}
 TypeExpr::Struct::Struct(std::vector<TypeExpr::NameType> fields) : fields_(fields) {}

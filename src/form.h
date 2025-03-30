@@ -18,7 +18,7 @@ struct Nil {
   static Nil Get() {
     static Nil n;
     return n;
-  };
+  }
 
   bool operator==(const Nil& _) const {
     return true;
@@ -32,6 +32,7 @@ struct Nil {
     sink.Append("nil");
   }
 };
+
 
 class MutableList;
 
@@ -65,7 +66,7 @@ class List final {
 
   auto Size() const noexcept {
     return values_->size() - head_idx_;
-  };
+  }
 
   bool IsEmpty() const noexcept {
     return Size() == 0;
@@ -73,7 +74,7 @@ class List final {
 
   const T& operator[](std::size_t idx) const {
     return (*values_)[idx + head_idx_];
-  };
+  }
 
   const T Head() const {
     return (*values_)[head_idx_];
@@ -89,19 +90,19 @@ class List final {
 
   auto cbegin() const noexcept {
     return values_->cbegin() + head_idx_;
-  };
+  }
 
   auto cend() const noexcept {
     return values_->cend();
-  };
+  }
 
   auto begin() const noexcept {
     return cbegin();
-  };
+  }
 
   auto end() const noexcept {
     return cend();
-  };
+  }
 
   friend bool operator==(const List& lhs, const List& rhs) {
     return *(lhs.values_) == *(rhs.values_);
@@ -121,33 +122,33 @@ class List final {
   std::size_t head_idx_;
 
   List(std::shared_ptr<std::vector<T>> values, std::size_t head_idx) :
-      values_(values), head_idx_(head_idx) {};
+      values_(values), head_idx_(head_idx) {}
 };
 
 template <typename Sink>
 class Format {
  public:
-  Format(Sink& sink) : sink_(sink) {};
+  Format(Sink& sink) : sink_(sink) {}
   void operator()(bool x) {
     absl::Format(&sink_, "%v", x);
-  };
+  }
 
   void operator()(std::int64_t x) {
     absl::Format(&sink_, "%lld", x);
-  };
+  }
 
   void operator()(double x) {
     absl::Format(&sink_, "%f", x);
-  };
+  }
 
   void operator()(std::string x) {
     sink_.Append(x);
-  };
+  }
 
   void operator()(const auto& x) {
     AbslStringify(sink_, x);
     // absl::Format(&sink_, "%v", x);
-  };
+  }
  private:
   Sink& sink_;
 };
@@ -186,17 +187,17 @@ struct Form {
   template <typename T>
   T get() const {
     return std::get<T>(value);
-  };
+  }
 
   template <typename T>
   bool is() const {
     return std::holds_alternative<T>(value);
-  };
+  }
 
   template <typename Matcher>
   constexpr auto Match(Matcher&& m) const {
     return std::visit(m, value);
-  };
+  }
 
   friend bool operator==(const Form& lhs, const Form& rhs) {
     return lhs.value == rhs.value;
@@ -217,7 +218,7 @@ const Symbol& Form::get<const Symbol&>() const;
 
 template <typename Sink>
 void AbslStringify(Sink& sink, const Form& form) {
-  form.Match(form::Format(sink));
+  form.Match(form::Format<Sink>(sink));
 }
 
 using List = form::List<Form>;
@@ -236,7 +237,7 @@ void AbslStringify(Sink& sink, const List& list) {
     absl::Format(&sink, "%v", form);
   }
   sink.Append(")");
-};
+}
 
 
 
@@ -249,7 +250,7 @@ class MutableList {
   form::ListContainer forms_;
   void Append(const Form& form) {
     forms_.push_back(form);
-  };
+  }
 
  private:
 
@@ -278,7 +279,7 @@ void AbslStringify(Sink& sink, const Vector& vec) {
     absl::Format(&sink, "%v", form);
   }
   sink.Append("]");
-};
+}
 
 }  // namespace dub
 

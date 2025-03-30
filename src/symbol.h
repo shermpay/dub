@@ -31,7 +31,7 @@ class Symbol final {
   static absl::node_hash_map<std::string, Symbol>& Interns() {
     static absl::node_hash_map<std::string, Symbol> interns;
     return interns;
-  };
+  }
 
   /// Returns a reference to a interned Symbol, constructs and interns the Symbol if it isn't interned.
   static const Symbol& Get(std::string name);
@@ -42,7 +42,7 @@ class Symbol final {
 
   std::size_t hash() const noexcept {
     return reinterpret_cast<std::size_t>(this);
-  };
+  }
 
   friend bool operator==(const Symbol& lhs, const Symbol& rhs) {
     return lhs.hash() == rhs.hash();

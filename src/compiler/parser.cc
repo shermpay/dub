@@ -35,7 +35,7 @@ absl::StatusOr<Module> Parser::ParseModule(const List& forms) const {
   }
 
   return modul;
-};
+}
 
 absl::StatusOr<ModuleDecl> Parser::ParseModuleHeader(const Form& form, Module* modul) const {
   auto mod_decl = ParseModuleDecl(form.get<List>(), modul);
@@ -61,13 +61,13 @@ parser::Result<Expression> Parser::ParseExpr(const Form& form, Module* modul) co
   auto result = std::visit(Parser::ParseAsExpr(this, form, modul), form.value);
   // std::cout << "ParseExpr:" << result << std::endl;
   return result;
-};
+}
 
 
-parser::Result<If<Expression>> Parser::ParseIf(const List& list, Module* modul) const {
+parser::Result<If> Parser::ParseIf(const List& list, Module* modul) const {
   auto tail = list.Tail();
   // TODO: update this;
-  If<Expression> if_expr;
+  If if_expr;
   if (tail.IsEmpty()) {
     return parser::Result<decltype(if_expr)>::Error(std::move(if_expr), "if expression is empty");
   }
@@ -103,9 +103,9 @@ parser::Result<If<Expression>> Parser::ParseIf(const List& list, Module* modul) 
 // ParseFn expression
 // (fn <name> [params] body...)
 // (fn foo [x y] (print 42) (+ x y))
-parser::Result<Fn<Expression>> Parser::ParseFn(const List& list, Module* modul) const {
+parser::Result<Fn> Parser::ParseFn(const List& list, Module* modul) const {
   auto tail = list.Tail();
-  Fn<Expression> fn;
+  Fn fn;
   if (tail.IsEmpty()) {
     return parser::Result<decltype(fn)>::Error(std::move(fn), "fn form is empty");
   }
@@ -151,9 +151,10 @@ parser::Result<Fn<Expression>> Parser::ParseFn(const List& list, Module* modul) 
   }
   fn.SetBody(body);
   return fn;
-};
+}
 
 parser::Result<ModuleDecl> Parser::ParseModuleDecl(const List& list, Module* modul) const {
+  (void)modul;
   auto tail = list.Tail();
   if (tail.IsEmpty()) {
     return parser::Result<ModuleDecl>::Error(ModuleDecl(Symbol::Get("")), "module form is empty");
@@ -165,30 +166,30 @@ parser::Result<ModuleDecl> Parser::ParseModuleDecl(const List& list, Module* mod
   return ModuleDecl(form.get<const Symbol&>());
 }
 
-parser::Result<MemberAccess<Expression>> Parser::ParseMemberAccess(const List& list, Module* modul) const {
+parser::Result<MemberAccess> Parser::ParseMemberAccess(const List& list, Module* modul) const {
   auto tail = list.Tail();
   if (tail.IsEmpty()) {
-    return parser::Result<MemberAccess<Expression>>::Error(MemberAccess<Expression>(), "struct expression is missing");
+    return parser::Result<MemberAccess>::Error(MemberAccess(), "struct expression is missing");
   }
   auto struct_expr = ParseExpr(tail.Head(), modul);
   if (struct_expr.IsError()) {
-	return struct_expr.UpdateValue(MemberAccess<Expression>());
+	return struct_expr.UpdateValue(MemberAccess());
   }
 
   tail = tail.Tail();
   if (tail.IsEmpty()) {
-    return parser::Result<MemberAccess<Expression>>::Error(MemberAccess<Expression>(), "member symbol is missing");
+    return parser::Result<MemberAccess>::Error(MemberAccess(), "member symbol is missing");
   }
   
 
   auto form = tail.Head();
   if (!form.is<const Symbol*>()) {
-    return parser::Result<MemberAccess<Expression>>::Error(MemberAccess<Expression>(), "member access form expects field name to be a symbol");
+    return parser::Result<MemberAccess>::Error(MemberAccess(), "member access form expects field name to be a symbol");
   }
   return MemberAccess(std::make_unique<Expression>(std::move(struct_expr.Value())), form.get<const Symbol&>());
 }
 
-parser::Result<Call<Expression>> Parser::ParseCall(const List& list, Module* modul) const {
+parser::Result<Call> Parser::ParseCall(const List& list, Module* modul) const {
   auto target = ParseExpr(list.Head(), modul);
   std::vector<Expression> args;
   for (const auto& form : list.Tail()) {
@@ -201,66 +202,66 @@ parser::Result<Call<Expression>> Parser::ParseCall(const List& list, Module* mod
   auto call = Call(std::move(target.Value()),
               std::move(args));
   // std::cout << "Call:" << call << std::endl;
-  return parser::Result<Call<Expression>>(std::move(call));
+  return parser::Result<Call>(std::move(call));
   // return call;
-};
+}
 
-parser::Result<Return<Expression>> Parser::ParseReturn(const List& list, Module* modul) const {
+parser::Result<Return> Parser::ParseReturn(const List& list, Module* modul) const {
   auto tail = list.Tail();
   if (tail.IsEmpty()) {
-    return Return<Expression>();
+    return Return();
   }
   auto value = ParseExpr(tail.Head(), modul);
   if (value.IsError()) {
-    return value.UpdateValue(Return<Expression>());
+    return value.UpdateValue(Return());
   }
   return Return(std::make_unique<Expression>(std::move(value.Value())));
 }
 
-parser::Result<VarDef<Expression>> Parser::ParseVarDef(const List& list, Module* modul) const {
+parser::Result<VarDef> Parser::ParseVarDef(const List& list, Module* modul) const {
   auto tail = list.Tail();
   if (tail.IsEmpty()) {
-    return parser::Result<VarDef<Expression>>::Error(VarDef<Expression>(), "var form is empty");
+    return parser::Result<VarDef>::Error(VarDef(), "var form is empty");
   }
 
   auto name = tail.Head();
   if (!name.is<const Symbol*>()) {
-    return parser::Result<VarDef<Expression>>::Error(VarDef<Expression>(), "var form expects var name as a symbol");
+    return parser::Result<VarDef>::Error(VarDef(), "var form expects var name as a symbol");
   }
 
   tail = tail.Tail();
   if (tail.IsEmpty()) {
-    return parser::Result<VarDef<Expression>>::Error(VarDef<Expression>(), "var form expects a var expression.");
+    return parser::Result<VarDef>::Error(VarDef(), "var form expects a var expression.");
   }
 
   auto type_expr = ParseType(tail.Head(), modul);
 
   if (type_expr.IsError()) {
     // TODO: Set type to Unit?
-    return type_expr.UpdateValue(VarDef<Expression>());
+    return type_expr.UpdateValue(VarDef());
   }
 
   // TODO: parse init value
 
-  return VarDef<Expression>(name.get<const Symbol&>(), type_expr.Value());
+  return VarDef(name.get<const Symbol&>(), type_expr.Value());
 }
 
-parser::Result<Set<Expression>> Parser::ParseVarSet(const List& list, Module* modul) const {
+parser::Result<Set> Parser::ParseVarSet(const List& list, Module* modul) const {
   auto tail = list.Tail();
   if (tail.IsEmpty()) {
-    return parser::Result<Set<Expression>>::Error(Set<Expression>(), "set form is empty");
+    return parser::Result<Set>::Error(Set(), "set form is empty");
   }
 
   auto place = ParseExpr(tail.Head(), modul);
 
   if (place.IsError()) {
-	return place.UpdateValue(Set<Expression>());
+	return place.UpdateValue(Set());
   }
 
   auto assignable_place = place.Value().AsAssignable();
   if (!assignable_place.has_value()) {
-    return parser::Result<Set<Expression>>::Errorf(
-        Set<Expression>(),
+    return parser::Result<Set>::Errorf(
+        Set(),
         "set form expects `(set place expression)`, where place is a symbol "
           "name or `(. struct-expr field-name)`; got %v",
 		place.Value());
@@ -268,15 +269,15 @@ parser::Result<Set<Expression>> Parser::ParseVarSet(const List& list, Module* mo
 
   tail = tail.Tail();
   if (tail.IsEmpty()) {
-    return parser::Result<Set<Expression>>::Error(Set<Expression>(), "set form expects a var expression.");
+    return parser::Result<Set>::Error(Set(), "set form expects a var expression.");
   }
 
   auto value = ParseExpr(tail.Head(), modul);
   if (value.IsError()) {
-	return value.UpdateValue(Set<Expression>());
+	return value.UpdateValue(Set());
   }
 
-  return Set<Expression>(std::move(assignable_place.value()), std::make_unique<Expression>(std::move(value.Value())));
+  return Set(std::move(assignable_place.value()), std::make_unique<Expression>(std::move(value.Value())));
 }
 
 parser::Result<TypeDef> Parser::ParseTypeDef(const List& list, Module* modul) const {
@@ -335,7 +336,7 @@ parser::Result<NameDecl> Parser::ParseNameDecl(const List& list, Module* modul) 
 
 parser::Result<TypeExpr> Parser::ParseType(const Form& form, Module* modul) const {
   return std::visit(Parser::ParseAsType(this, form, modul), form.value);
-};
+}
 
 template <typename T>
 parser::Result<Expression> WrapExpressionResult(parser::Result<T> result,
@@ -349,7 +350,7 @@ parser::Result<Expression> WrapExpressionResult(parser::Result<T> result,
 
   // std::cout << " into: " << new_res << std::endl;
   return new_res;
-};
+}
 
 parser::Result<Expression> Parser::ParseAsExpr::operator()(const Constant::Literal& value) const {
   return modul_->MakeExpression(Constant(value),
@@ -447,9 +448,9 @@ parser::Result<TypeExpr> Parser::ParseAsType::operator()(const Form::Value& valu
   return std::visit([](auto&& v){
     using T = std::decay_t<decltype(v)>;
     if constexpr (std::is_same_v<T, std::int64_t> || std::is_same_v<T, double>)
-        return parser::Result(TypeExpr(Constant(v)));
+        return parser::Result<TypeExpr>(TypeExpr(Constant(v)));
     else if constexpr (std::is_same_v<T, const Symbol*>)
-        return parser::Result(TypeExpr(*v));
+        return parser::Result<TypeExpr>(TypeExpr(*v));
     else
       return parser::Result<TypeExpr>::Error(
           TypeUnit(),"invalid type expression");

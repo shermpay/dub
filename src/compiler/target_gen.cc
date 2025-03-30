@@ -17,12 +17,16 @@
 namespace dub::compiler {
 
 void TargetGen::InitializeAllTargets() {
-  // TODO: Only initialize current machine targets
-  llvm::InitializeAllTargetInfos();
-  llvm::InitializeAllTargets();
-  llvm::InitializeAllTargetMCs();
-  llvm::InitializeAllAsmParsers();
-  llvm::InitializeAllAsmPrinters();
+  // TODO: Control by preprocessor
+  // llvm::InitializeAllTargetInfos();
+  // llvm::InitializeAllTargets();
+  // llvm::InitializeAllTargetMCs();
+  // llvm::InitializeAllAsmParsers();
+  // llvm::InitializeAllAsmPrinters();
+
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmParser();
+  llvm::InitializeNativeTargetAsmPrinter();
 }
 
 absl::StatusOr<std::unique_ptr<TargetGen>> TargetGen::CreateDefault() {

@@ -10,6 +10,7 @@ namespace lib {
 using Bar = std::variant<int>;
 template <typename Sink>
 void AbslStringify(Sink& sink, const Bar& b) {
+  (void)b;
   sink.Append("bar");
 }
 struct Foo {
@@ -18,8 +19,9 @@ struct Foo {
 
   template <typename Sink>
   friend void AbslStringify(Sink& sink, const Foo& f) {
+    (void)f;
     absl::Format(&sink, "foo");
-  };
+  }
 
   // template <typename Sink>
   // friend void AbslStringify(Sink& sink, const Foo::Bar& b) {

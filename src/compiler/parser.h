@@ -18,7 +18,7 @@ namespace parser {
 
 class Error {
  public:
-  explicit Error(std::string msg) : message_(msg) {};
+  explicit Error(std::string msg) : message_(msg) {}
 
   template <typename Sink>
   friend void AbslStringify(Sink& sink, const Error& error) {
@@ -28,7 +28,7 @@ class Error {
   friend std::ostream& operator<<(std::ostream& os, const Error& error) {
     os << error.message_;
     return os;
-  };
+  }
  private:
   // TODO: Add location
   std::string message_;
@@ -50,57 +50,57 @@ class Result {
 
   static Result Error(const T& value, std::string message) {
     return Result(value, std::optional<parser::Error>(message));
-  };
+  }
 
   static Result Error(T&& value, std::string message) {
     return Result(std::move(value), std::optional<parser::Error>(message));
-  };
+  }
 
   template <typename... Args>
   static Result Errorf(const T& value, absl::FormatSpec<Args...> fmt, const Args&... args) {
     return Result(value, std::optional<parser::Error>(absl::StrFormat(fmt, args...)));
-  };
+  }
 
   template <typename... Args>
   static Result Errorf(T&& value, absl::FormatSpec<Args...> fmt, const Args&... args) {
     return Result(std::move(value), std::optional<parser::Error>(absl::StrFormat(fmt, args...)));
-  };
+  }
 
   static Result FromError(T&& value, parser::Error error) {
     return Result(std::move(value), std::optional<parser::Error>(error));
-  };
+  }
 
   bool IsError() const {
     return error_.has_value();
-  };
+  }
 
   bool IsOk() const {
     return !IsError();
-  };
+  }
 
   const parser::Error& Error() const& {
     return *error_;
-  };
+  }
 
   parser::Error Error() && {
     return *error_;
-  };
+  }
 
   T& Value() & {
     return value_;
-  };
+  }
 
   const T& Value() const& {
     return std::move(value_);
-  };
+  }
 
   T&& Value() && {
     return std::move(value_);
-  };
+  }
 
   const T&& Value() const&& {
     return std::move(value_);
-  };
+  }
 
   template <typename T2>
   Result<T2> UpdateValue(T2&& new_value) {
@@ -119,7 +119,7 @@ class Result {
   friend std::ostream& operator<<(std::ostream& os, const Result<T>& result) {
     os << absl::StreamFormat("%v", result);
     return os;
-  };
+  }
 
  private:
   T value_;
@@ -150,7 +150,7 @@ class Parser final {
         parser_(parser),
         form_(form),
         modul_(modul)
-    {};
+    {}
     parser::Result<Expression> operator()(const Constant::Literal&) const;
     parser::Result<Expression> operator()(const Symbol*) const;
     parser::Result<Expression> operator()(const List&) const;
@@ -167,9 +167,9 @@ class Parser final {
         const Form& form,
         Module* modul) :
         parser_(parser),
-        form_(form),
+        // form_(form),
         modul_(modul)
-    {};
+    { (void)form; }
     parser::Result<TypeExpr> operator()(const Form::Value&) const;
     parser::Result<TypeExpr> operator()(const List&) const;
     parser::Result<TypeExpr> operator()(const Vector&) const;
@@ -177,17 +177,17 @@ class Parser final {
     parser::Result<TypeExpr::Struct> ParseStruct(const List&, Module* modul) const;
 
     const Parser* parser_;
-    const Form& form_;
+    // const Form& form_;
     Module* modul_;
   };
   parser::Result<Expression> ParseExpr(const Form& form, Module* modul) const;
-  parser::Result<If<Expression>> ParseIf(const List& list, Module* modul) const;
-  parser::Result<Fn<Expression>> ParseFn(const List& list, Module* modul) const;
-  parser::Result<Call<Expression>> ParseCall(const List& list, Module* modul) const;
-  parser::Result<Return<Expression>> ParseReturn(const List& list, Module* modul) const;
-  parser::Result<VarDef<Expression>> ParseVarDef(const List& list, Module* modul) const;
-  parser::Result<Set<Expression>> ParseVarSet(const List& list, Module* modul) const;
-  parser::Result<MemberAccess<Expression>> ParseMemberAccess(const List& list, Module* modul) const;
+  parser::Result<If> ParseIf(const List& list, Module* modul) const;
+  parser::Result<Fn> ParseFn(const List& list, Module* modul) const;
+  parser::Result<Call> ParseCall(const List& list, Module* modul) const;
+  parser::Result<Return> ParseReturn(const List& list, Module* modul) const;
+  parser::Result<VarDef> ParseVarDef(const List& list, Module* modul) const;
+  parser::Result<Set> ParseVarSet(const List& list, Module* modul) const;
+  parser::Result<MemberAccess> ParseMemberAccess(const List& list, Module* modul) const;
   parser::Result<ModuleDecl> ParseModuleDecl(const List& list, Module* modul) const;
   parser::Result<TypeDef> ParseTypeDef(const List& list, Module* modul) const;
   parser::Result<NameDecl> ParseNameDecl(const List& list, Module* modul) const;

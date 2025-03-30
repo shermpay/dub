@@ -72,12 +72,12 @@ struct Parameterized {
   const Symbol* name;
   std::vector<T> types;
   explicit Parameterized(const Symbol& name, std::vector<T> ts) :
-      name(&name), types(ts) {};
+      name(&name), types(ts) {}
 
   explicit Parameterized(const Symbol& name, T t) :
       name(&name), types(std::vector<T>()) {
     types.push_back(t);
-  };
+  }
 
   template <typename... Args>
   static Parameterized Make(Symbol& name, Args... args) {
@@ -164,11 +164,11 @@ class Type final {
   using Tuple = type::Tuple<Type>;
   using Struct = type::Struct<Type>;
 
-  explicit Type(type::Basic t) : kind_(t), prop_(type::Property::kNone)  {};
-  explicit Type(type::Parameterized<Type> ts, type::Property p) : kind_(ts), prop_(p) {};
-  explicit Type(compiler::Constant c) : kind_(c), prop_(type::Property::kNone) {};
-  explicit Type(type::Tuple<Type> ts) : kind_(ts), prop_(type::Property::kNone) {};
-  explicit Type(Struct st) : kind_(st), prop_(type::Property::kNone) {};
+  explicit Type(type::Basic t) : kind_(t), prop_(type::Property::kNone)  {}
+  explicit Type(type::Parameterized<Type> ts, type::Property p) : kind_(ts), prop_(p) {}
+  explicit Type(compiler::Constant c) : kind_(c), prop_(type::Property::kNone) {}
+  explicit Type(type::Tuple<Type> ts) : kind_(ts), prop_(type::Property::kNone) {}
+  explicit Type(Struct st) : kind_(st), prop_(type::Property::kNone) {}
 
   bool operator==(const Type& rhs) const {
     return kind_ == rhs.kind_ && prop_ == rhs.prop_;
@@ -225,7 +225,7 @@ void AbslStringify(Sink& sink, const Parameterized<Type> type) {
     absl::Format(&sink, " %v", t);
   }
   sink.Append(")");
-};
+}
 
 template <typename Sink>
 void AbslStringify(Sink& sink, const Tuple<Type> type) {
@@ -240,7 +240,7 @@ void AbslStringify(Sink& sink, const Tuple<Type> type) {
     absl::Format(&sink, "%v", t);
   }
   sink.Append(")");
-};
+}
 
 template <typename Sink>
 void AbslStringify(Sink& sink, const Struct<Type>::Field type) {
@@ -264,7 +264,7 @@ void AbslStringify(Sink& sink, const Struct<Type> type) {
     absl::Format(&sink, "%v", t);
   }
   sink.Append("])");
-};
+}
 
 Type& Unit();
 Type& Bool();
@@ -300,7 +300,7 @@ class Fn final {
 
   Type::Tuple ParamTypes() const {
     return underlying_.types[0].Get<Type::Tuple>();
-  };
+  }
   Type ReturnType() const {
     return underlying_.types[1];
   }

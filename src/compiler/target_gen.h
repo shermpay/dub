@@ -16,7 +16,6 @@ class TargetGen final {
   {}
 
   static void InitializeAllTargets();
-  static void InitializeCurrentMachineTarget();
 
   static absl::StatusOr<std::unique_ptr<TargetGen>> CreateDefault();
 

@@ -1,7 +1,7 @@
 #ifndef DUB_COMPILER_TYPE_INFO_H_
 #define DUB_COMPILER_TYPE_INFO_H_
 
-#include "absl/container/node_hash_map.h"
+#include "llvm/ADT/DenseMap.h"
 
 #include "src/compiler/type.h"
 #include "src/symbol.h"
@@ -23,11 +23,11 @@ class TypeInfo final {
 
   void AddType(const Symbol& name, const Type type) {
     types_.insert({&name, type});
-  };
+  }
 
   void AddConstructor(const Symbol& name, const type::Constructor* ctor) {
     ctors_.insert({&name, ctor});
-  };
+  }
 
   void AddName(const Symbol& name, const Type type) {
     names_.insert({&name, type});
@@ -35,16 +35,16 @@ class TypeInfo final {
 
   // TODO: Topological ordering
   auto types_cbegin() const {
-    return types_.cbegin();
+    return types_.begin();
   }
   auto types_cend() const {
-    return types_.cend();
+    return types_.end();
   }
 
  private:
-  absl::node_hash_map<const Symbol*, Type> types_;
-  absl::node_hash_map<const Symbol*, const type::Constructor*> ctors_;
-  absl::node_hash_map<const Symbol*, Type> names_;
+  llvm::DenseMap<const Symbol*, Type> types_;
+  llvm::DenseMap<const Symbol*, const type::Constructor*> ctors_;
+  llvm::DenseMap<const Symbol*, Type> names_;
 };
 
 }  // namespace dub::compiler

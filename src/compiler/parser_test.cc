@@ -52,7 +52,7 @@ TEST(ParserTest, ParseLiteral) {
   auto result = parser.ParseExpression(Form(42), &test);
   auto want = Literal(42);
   ASSERT_OK_EQ(result, want);
-};
+}
 
 TEST(ParserTest, ParseCall) {
   auto test = Module::WithName(Symbol::Get("testing"));
@@ -64,7 +64,7 @@ TEST(ParserTest, ParseCall) {
            Literal(1),
            Literal(2)));
   ASSERT_OK_EQ(result, want);
-};
+}
 
 TEST(ParserTest, ParseIf) {
   auto test = Module::WithName(Symbol::Get("testing"));

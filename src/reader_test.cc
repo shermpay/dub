@@ -28,7 +28,7 @@ MATCHER_P(IsOkAndHolds, matcher, "") {
 #define ASSERT_OK(arg) ASSERT_THAT(arg, IsOk())
 #define ASSERT_OK_EQ(arg, want) ASSERT_THAT(arg, IsOkAndHolds(want))
 
-std::string from_u8string(const std::u8string &s) {
+static std::string from_u8string(const std::u8string &s) {
   return std::string(s.begin(), s.end());
 }
 

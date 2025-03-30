@@ -1,11 +1,9 @@
 #include "type_info.h"
 
-#include "absl/log/die_if_null.h"
-
 namespace dub::compiler {
 
 const std::optional<Type> TypeInfo::LookupType(const Symbol& name) const {
-  auto name_ptr = ABSL_DIE_IF_NULL(&name);
+  auto name_ptr = &name;
   auto iter = types_.find(name_ptr);
 
   if (iter == types_.end()) {

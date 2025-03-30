@@ -41,7 +41,9 @@ class Repl {
 
 }  // namespace dub
 
-int main(int args, char* argv[]) {
+int main(int argc, char* argv[]) {
+  (void)argc,
+  (void)argv;
   dub::Reader reader(std::cin);
   reader.EnableLocation(dub::SourceReader("*repl*"));
   auto compiler = dub::Compiler::MakeDefaultJit(std::cout);

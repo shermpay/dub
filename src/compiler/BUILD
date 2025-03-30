@@ -2,7 +2,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 package(
     default_visibility = ["//visibility:public"],
-    features = ["warning_compile_flags"],
 )
 
 cc_library(
@@ -69,8 +68,7 @@ cc_library(
     deps = [
         ":type",
         "//src:symbol",
-        "@absl//absl/container:node_hash_map",
-        "@absl//absl/log:die_if_null",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -216,11 +214,12 @@ cc_library(
     srcs = ["target_gen.cc"],
     hdrs = ["target_gen.h"],
     deps = [
+        # TODO: use select to build for single current arch, specific arch or all arch.
         "@absl//absl/status:statusor",
-        "@llvm-project//llvm:AllTargetsAsmParsers",
-        "@llvm-project//llvm:AllTargetsCodeGens",
+        "@llvm-project//llvm:X86AsmParser",
+        "@llvm-project//llvm:X86CodeGen",
         # "@llvm//llvm:AllTargetsDisassemblers",
-        "@llvm-project//llvm:AllTargetsMCAs",
+        "@llvm-project//llvm:X86TargetMCA",
         "@llvm-project//llvm:CodeGen",
         "@llvm-project//llvm:Core",
         "@llvm-project//llvm:Support",

@@ -39,8 +39,8 @@ class StatusError : public Error {
 template <typename T>
 class Result final {
  public:
-  Result(std::unique_ptr<Error> error) : value_(std::move(error)) {};
-  Result(T value) : value_(std::move(value)) {};
+  Result(std::unique_ptr<Error> error) : value_(std::move(error)) {}
+  Result(T value) : value_(std::move(value)) {}
 
   bool IsOk() const noexcept {
     return std::holds_alternative<T>(value_);

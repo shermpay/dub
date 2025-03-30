@@ -33,7 +33,7 @@ namespace {
 struct MakeType final {
   Typer& typer_;
 
-  MakeType(Typer& c) : typer_(c) {};
+  MakeType(Typer& c) : typer_(c) {}
 
   absl::StatusOr<Type> operator()(const Constant val) const {
     return Type(Constant(val));
@@ -96,7 +96,7 @@ struct Check final {
   Check(Typer* t, TypedModule* mod, const Expression* expr) :
       typer(*t),
       typed_module(*mod),
-      the_expr(*expr) {};
+      the_expr(*expr) {}
 
   // TODO: Type and TypeError are the output types of a pass
   // Imagine a pass like this `Pass<Type, TypeError>`
@@ -139,7 +139,7 @@ struct Check final {
     return type::Unit();
   }
 
-  Result<Type> operator()(const Call<Expression>& expr) {
+  Result<Type> operator()(const Call& expr) {
     std::cout << "Call: " << expr << std::endl;
     // TODO: Support any function object
     const auto callee = expr.target().Get<const Symbol*>();
@@ -184,7 +184,7 @@ struct Check final {
     return fn_type->ReturnType();
   }
 
-  Result<Type> operator()(const Fn<Expression>& fn) {
+  Result<Type> operator()(const Fn& fn) {
     // Check if Fn has type signature.
     auto type = typer.info().LookupName(*fn.name());
     if (!type.has_value()) {
@@ -199,7 +199,7 @@ struct Check final {
     return type::Unit();
   }
 
-  Result<Type> operator()(const Return<Expression>& expr) {
+  Result<Type> operator()(const Return& expr) {
     if (expr.HasValue()) {
       auto value_type = typer.TypeExpression(expr.Value(), &typed_module);
       if (!value_type.IsOk()) {
@@ -209,7 +209,7 @@ struct Check final {
     return type::Unit();
   }
 
-  Result<Type> operator()(const VarDef<Expression>& def) {
+  Result<Type> operator()(const VarDef& def) {
     auto type = def.type().Match(MakeType(typer));
 	if (!type.ok()) {
       return Result<Type>(std::make_unique<StatusError>(type.status()));
@@ -250,7 +250,7 @@ Typer::Typer(std::vector<std::pair<const Symbol*, Type>> builtin_types,
   for (const auto& pair : builtin_names) {
     info_->AddName(*pair.first, pair.second);
   }
-};
+}
 
 Result<std::unique_ptr<TypedModule>> Typer::TypeModule(const Module& mod) {
   auto typed_mod = std::make_unique<TypedModule>(mod);

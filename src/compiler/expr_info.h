@@ -13,7 +13,7 @@ namespace dub::compiler {
 // ExprInfo contains information of an expression after parsing.
 class ExprInfo final {
  public:
-  ExprInfo(SourceInfo& source) : source(&source) {};
+  ExprInfo(SourceInfo& source) : source(&source) {}
 
   template <typename Sink>
   friend void AbslStringify(Sink& sink, const ExprInfo& info) noexcept {

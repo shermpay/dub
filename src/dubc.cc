@@ -21,7 +21,7 @@ struct Options {
   std::string_view emit_llvm;
 };
 
-absl::Status CompileFile(const Options& opts) {
+static absl::Status CompileFile(const Options& opts) {
   std::ifstream in(std::string(opts.input));
 
   if (!in) {
@@ -42,7 +42,7 @@ absl::Status CompileFile(const Options& opts) {
 	return compiler.status();
   }
   return compiler.value().CompileModule(forms.value());
-};
+}
 
 }  // namespace
 

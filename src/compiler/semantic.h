@@ -21,54 +21,57 @@ namespace dub::compiler {
 
 namespace semantic {
 
-class TypeMismatchError final : public Error {
- public:
-  TypeMismatchError(Type want, const Expression* expr, Type got) :
-      want_(want),
-      expr_(expr),
-      got_(got),
-      message_(absl::StrFormat(
-        "type mismatch for expression %v: expected type is %v, got type %v",
-        *expr_, want_, got_)) {}
+class TypeMismatchError final : public llvm::ErrorInfo<TypeMismatchError> {
+public:
+  static char ID;
+  TypeMismatchError(Type want, const Expression *expr, Type got)
+      : want_(want), expr_(expr), got_(got),
+        message_(absl::StrFormat(
+            "type mismatch for expression %v: expected type is %v, got type %v",
+            *expr_, want_, got_)) {}
   ~TypeMismatchError() = default;
 
-  std::string_view Message() const noexcept override {
-    return message_;
+  void log(llvm::raw_ostream &os) const noexcept override { os << message_; }
+
+  std::error_code convertToErrorCode() const override {
+    return make_error_code(ErrorCode::kTypeCheckerError);
   }
 
- private:
+private:
   Type want_;
-  const Expression* expr_;
+  const Expression *expr_;
   Type got_;
   std::string message_;
 };
 
-
-class TypeNameUndefinedError final : public Error {
- public:
-  TypeNameUndefinedError(const Symbol& name, const Expression* expr) :
-      name_(name),
-      expr_(expr),
-      message_(absl::StrFormat(
-        "type name '%v' is undefined (expression: %v)",
-        name_, *expr_))
-  {}
+class TypeNameUndefinedError final
+    : public llvm::ErrorInfo<TypeNameUndefinedError> {
+public:
+  static char ID;
+  TypeNameUndefinedError(const Symbol &name, const Expression *expr)
+      : name_(name), expr_(expr),
+        message_(absl::StrFormat("type name '%v' is undefined (expression: %v)",
+                                 name_, *expr_)) {}
   ~TypeNameUndefinedError() = default;
-  std::string_view Message() const noexcept override {
-    return message_;
+
+  void log(llvm::raw_ostream &os) const noexcept override { os << message_; }
+
+  std::error_code convertToErrorCode() const override {
+    return make_error_code(ErrorCode::kTypeCheckerError);
   }
- private:
-  const Symbol& name_;
-  const Expression* expr_;
+
+private:
+  const Symbol &name_;
+  const Expression *expr_;
   std::string message_;
 };
 
-
 }  // namespace semantic
 
-std::unique_ptr<semantic::TypeMismatchError> MakeTypeMismatchError(Type want, const Expression& expr, Type got);
-std::unique_ptr<semantic::TypeNameUndefinedError> MakeTypeNameUndefinedError(
-    const Symbol& name, const Expression& expr);
+semantic::TypeMismatchError
+MakeTypeMismatchError(Type want, const Expression &expr, Type got);
+semantic::TypeNameUndefinedError
+MakeTypeNameUndefinedError(const Symbol &name, const Expression &expr);
 
 // Evaluate type expressions and check types.
 class Typer final {

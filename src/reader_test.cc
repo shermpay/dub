@@ -1,11 +1,12 @@
-#include "reader.h"
+#include "src/reader.h"
+
+#include "src/form.h"
+#include "src/symbol.h"
+
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #include <sstream>
-
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-
-#include "form.h"
 
 using ::dub::Form;
 using ::dub::List;
@@ -14,9 +15,7 @@ using ::testing::Pointee;
 using ::testing::Pointer;
 using ::testing::VariantWith;
 
-MATCHER(IsOk, "") {
-  return arg.ok();
-}
+MATCHER(IsOk, "") { return arg.ok(); }
 
 MATCHER_P(IsOkAndHolds, matcher, "") {
   if (arg.ok()) {

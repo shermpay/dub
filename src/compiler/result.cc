@@ -1,7 +1,9 @@
 #include "result.h"
+#include "llvm/Support/raw_os_ostream.h"
+#include <iterator>
 
 namespace dub {
 
-Error::~Error() = default;
+char StatusError::ID;
 
-}  // namespace dub
+} // namespace dub

@@ -1,4 +1,4 @@
-#include "symbol.h"
+#include "src/symbol.h"
 
 namespace dub {
 
@@ -13,9 +13,14 @@ const Symbol& Symbol::Get(std::string name) {
   return iter->second;
 }
 
-std::ostream& operator<<(std::ostream& os, const Symbol& symbol) {
+std::ostream &operator<<(std::ostream &os, const Symbol &symbol) {
   os << symbol.value();
   return os;
 }
 
-}  // namespace dub
+} // namespace dub
+
+void ::llvm::format_provider<dub::Symbol>::format(const dub::Symbol &sym, llvm::raw_ostream &stream, llvm::StringRef style) {
+  (void)style;
+  stream << sym.value();
+}

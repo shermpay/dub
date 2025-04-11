@@ -18,26 +18,26 @@ namespace dub {
 // SourceReader is a Reader plugin
 class SourceReader {
  public:
-  SourceReader(std::string name) {
-    auto& pool = FilenamesPool();
-    auto [iter, _] = pool.insert(name);
-    name_ = *iter;
-  }
+   SourceReader(std::string name) {
+     auto &pool = FilenamesPool();
+     auto [iter, _] = pool.insert(name);
+     name_ = iter->first();
+   }
 
-  void OnNext(char c);
-  void NewLine();
+   void OnNext(char c);
+   void NewLine();
 
-  void Enter();
-  void Exit(Form& f);
+   void Enter();
+   void Exit(Form &f);
 
  private:
-  std::string_view name_;
-  std::uint64_t line_ = 0;
-  std::uint64_t column_ = 0;
-  std::uint64_t prev_column_ = 0;
-  std::string cur_line_ = "";
-  std::vector<SourceInfo> info_stack_;
-  std::vector<std::unique_ptr<SourceInfo>> infos_;
+   std::string_view name_;
+   std::uint64_t line_ = 0;
+   std::uint64_t column_ = 0;
+   std::uint64_t prev_column_ = 0;
+   std::string cur_line_ = "";
+   std::vector<SourceInfo> info_stack_;
+   std::vector<std::unique_ptr<SourceInfo>> infos_;
 };
 
 // Maybe this should be Reader<T>, where is used in Form<T>.

@@ -38,6 +38,7 @@ cc_library(
     deps = [
         ":form",
         ":source_info",
+        ":symbol",
         "@absl//absl/status",
         "@absl//absl/status:statusor",
     ],
@@ -49,7 +50,9 @@ cc_test(
     deps = [
         ":form",
         ":reader",
+        ":symbol",
         "@googletest//:gtest_main",
+        "@googletest//:gtest",
     ],
 )
 
@@ -59,18 +62,25 @@ cc_library(
     hdrs = ["source_info.h"],
     deps = [
         ":form",
-        "@absl//absl/container:node_hash_set",
         "@absl//absl/strings:str_format",
+        "@llvm-project//llvm:Support",
     ],
 )
 
 cc_library(
     name = "form",
-    srcs = ["form.cc"],
-    hdrs = ["form.h"],
+    srcs = [
+        "form.cc",
+        "form_format.cc",
+    ],
+    hdrs = [
+        "form.h",
+        "form_format.h",
+    ],
     deps = [
         ":symbol",
         "@absl//absl/strings:str_format",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -81,16 +91,8 @@ cc_test(
         ":form",
         "@absl//absl/strings:str_format",
         "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "form_format",
-    srcs = ["form_format.cc"],
-    hdrs = ["form_format.h"],
-    deps = [
-        ":form",
-        ":symbol",
+        "@googletest//:gtest",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -99,8 +101,30 @@ cc_library(
     srcs = ["symbol.cc"],
     hdrs = ["symbol.h"],
     deps = [
-        "@absl//absl/container:node_hash_map",
         "@absl//absl/strings:str_format",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+cc_test(
+    name = "symbol_test",
+    srcs = ["symbol_test.cc"],
+    deps = [
+        ":symbol",
+        "@googletest//:gtest_main",
+        "@googletest//:gtest",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+cc_library(
+    name = "base",
+    hdrs = [
+        "errors.h",
+        "formattable.h"
+    ],
+    deps = [
+        "@llvm-project//llvm:Support",
     ],
 )
 

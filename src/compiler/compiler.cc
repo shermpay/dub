@@ -76,13 +76,14 @@ absl::Status Compiler::CompileModule(const List& forms) {
 
 // TODO: Figure out how to share scoped type info between Typer and LlvmGen
 //
-absl::Status Compiler::CompileExpression(const Form& form, CompileContext* ctx) {
+absl::Status Compiler::CompileExpression(const Form &form,
+                                         CompileContext *ctx) {
   auto expr_ptr = parser_.ParseExpression(form, ctx->parsed_module());
 
   if (!expr_ptr.ok()) {
     return expr_ptr.status();
   }
-  auto& expr = *expr_ptr.value();
+  auto &expr = *expr_ptr.value();
   auto mod = ctx->parsed_module();
   if (mod == nullptr) {
     return absl::InternalError("compilation context has null Module");
@@ -100,20 +101,19 @@ absl::Status Compiler::CompileExpression(const Form& form, CompileContext* ctx) 
     return absl::InternalError("compilation context has null TypedModule");
   }
   // TODO: Move this initialization out.
-  auto typer = compiler::Typer(type::BuiltinTypes(),
-                               type::BuiltinConstructors(),
-                               type::BuiltinNames(),
-                               typed_mod->type_info());
+  auto typer =
+      compiler::Typer(type::BuiltinTypes(), type::BuiltinConstructors(),
+                      type::BuiltinNames(), typed_mod->type_info());
   auto result = typer.TypeExpression(expr, typed_mod);
-  logging() << "[TC] " << (result.IsOk() ? "success" : result.ErrorMessage()) << std::endl;
+  logging() << "[TC] " << result.IsOk() << '\n';
   if (!result.IsOk()) {
-    return absl::InvalidArgumentError(result.ErrorMessage());
+    result.LogErrors(logging());
+    return absl::InvalidArgumentError("type check failed");
   }
   logging() << "[TI] " << typed_mod->TypeOf(expr) << std::endl;
 
-  auto codegen = compiler::LlvmGen(
-      compiler::Mode::kAot, typed_mod,
-      ctx->ll_context(), ctx->ll_module());
+  auto codegen = compiler::LlvmGen(compiler::Mode::kAot, typed_mod,
+                                   ctx->ll_context(), ctx->ll_module());
   auto code = codegen.GenerateExpression(expr);
 
   if (!code.ok()) {
@@ -130,6 +130,5 @@ absl::Status Compiler::CompileExpression(const Form& form, CompileContext* ctx) 
 
   return absl::OkStatus();
 }
-
 
 }  // namespace dub

@@ -77,7 +77,9 @@ class Constant final {
   }
 
  private:
-  Literal literal_;
+   Literal literal_;
+
+   friend struct llvm::format_provider<Constant>;
 };
 
 }  // namespace dub::compiler

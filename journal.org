@@ -1,4 +1,16 @@
-#+TITLE: dub task tracking
+#+TITLE: dub journal
+* Design 
+
+** Why dub?
+
+  To provide a high-level language which is meant as a target for code generation. Similar to how C is sometimes used as a target for code generation, dub provides a way to generate WebAssembly (WASM).
+
+*** Why not generate WASM directly?
+   Because WASM is quite low-level and does not provide certain constructs out of the box such as structs. 
+
+*** How about existing tools like Binaryen?
+   Binaryen is a code generator for WebAssembly.
+
 * TODO Remove absl dependency and rely entirely on LLVM.
   Rationale: remove dependency, reduce build times, reduce binary size and also gain knowledge of LLVM APIs.
 
@@ -13,3 +25,6 @@
 
 ** absl::Span
    I think this can be replaced with llvm::ArrayRef
+
+
+* TODO Use C++20 concepts

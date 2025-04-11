@@ -2,12 +2,12 @@
 #define DUB_SYMBOL_H_
 
 #include <cassert>
-#include <memory>
 #include <string_view>
 #include <string>
 
-#include "absl/container/node_hash_map.h"
 #include "absl/strings/str_format.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/Support/FormatVariadicDetails.h"
 
 namespace dub {
 
@@ -22,14 +22,14 @@ class Symbol final {
   Symbol& operator=(const Symbol&) = delete;
 
   // Non-movable
-  // (Cannot be stored in flat_hash_map or std::unordered_map)
+  // (Cannot be stored in absl::flat_hash_map or std::unordered_map)
   Symbol(Symbol&&) = delete;
   Symbol& operator=(Symbol&&) = delete;
 
   ~Symbol() = default;
 
-  static absl::node_hash_map<std::string, Symbol>& Interns() {
-    static absl::node_hash_map<std::string, Symbol> interns;
+  static llvm::StringMap<Symbol>& Interns() {
+    static llvm::StringMap<Symbol> interns;
     return interns;
   }
 
@@ -73,7 +73,16 @@ class Symbol final {
 
 std::ostream& operator<<(std::ostream& os, const Symbol& symbol);
 
+
 }  // namespace dub
+
+template <> struct ::llvm::format_provider<dub::Symbol> {
+  static void format(const dub::Symbol &sym, llvm::raw_ostream &stream, StringRef style);
+};
+
+template <> struct ::llvm::format_provider<dub::Symbol*> {
+  static void format(const dub::Symbol *sym, llvm::raw_ostream &stream, StringRef style);
+};
 
 // template <>
 // struct std::hash<dub::Symbol> {

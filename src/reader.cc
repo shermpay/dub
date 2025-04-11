@@ -1,15 +1,17 @@
 #include "src/reader.h"
 
+#include "src/form.h"
+#include "src/source_info.h"
+#include "src/symbol.h"
+
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+
 #include <cctype>
 #include <memory>
 #include <optional>
 #include <string>
 #include <thread>
-
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
-#include "src/form.h"
-#include "src/source_info.h"
 
 namespace dub {
 
@@ -33,16 +35,17 @@ void SourceReader::NewLine() {
 
 void SourceReader::Enter() {
   auto info = SourceInfo{
-    .location = SourceLocation{
-      .filename = name_,
-      .line_start = line_,
-      .column_start = column_,
-    },
+      .location =
+          SourceLocation{
+              .filename = name_,
+              .line_start = line_,
+              .column_start = column_,
+          },
   };
   info_stack_.push_back(info);
 }
 
-void SourceReader::Exit(Form& form) {
+void SourceReader::Exit(Form &form) {
   auto info = info_stack_.back();
   info_stack_.pop_back();
   info.location.line_end = line_;
@@ -51,7 +54,6 @@ void SourceReader::Exit(Form& form) {
   form.info = infos_.back().get();
 }
 
-
 absl::StatusOr<std::optional<Form>> Reader::ReadForm() {
   if (stream_.fail() || stream_.bad()) {
     return absl::FailedPreconditionError("stream is in fail/bad state");
@@ -59,39 +61,41 @@ absl::StatusOr<std::optional<Form>> Reader::ReadForm() {
 
   char c = Next();
   while (state_ == Reader::State::kSkip || state_ == Reader::State::kComment) {
-	if (state_ == Reader::State::kComment) {
-	  ReadComment();
-	} 
-	c = Next();
+    if (state_ == Reader::State::kComment) {
+      ReadComment();
+    }
+    c = Next();
   }
 
-  if (source_reader_) source_reader_->Enter();
+  if (source_reader_)
+    source_reader_->Enter();
   absl::StatusOr<Form::Value> value;
   switch (state_) {
-    case Reader::State::kEnd:
-    case Reader::State::kListEnd:
-    case Reader::State::kVectorEnd:
-	  return std::nullopt;
-    case Reader::State::kString:
-      value = ReadString();
-      break;
-    case Reader::State::kListStart:
-      value = ReadList();
-      break;
-    case Reader::State::kVectorStart:
-      value = ReadVector();
-      break;
-    case Reader::State::kNumberOrSymbol:
-      value = ReadLiteralOrSymbol(c);
-      break;
-    default:
-      return absl::InvalidArgumentError("invalid syntax");
+  case Reader::State::kEnd:
+  case Reader::State::kListEnd:
+  case Reader::State::kVectorEnd:
+    return std::nullopt;
+  case Reader::State::kString:
+    value = ReadString();
+    break;
+  case Reader::State::kListStart:
+    value = ReadList();
+    break;
+  case Reader::State::kVectorStart:
+    value = ReadVector();
+    break;
+  case Reader::State::kNumberOrSymbol:
+    value = ReadLiteralOrSymbol(c);
+    break;
+  default:
+    return absl::InvalidArgumentError("invalid syntax");
   }
   if (!value.ok()) {
     return value.status();
   }
   auto f = Form(std::move(value.value()));
-  if (source_reader_) source_reader_->Exit(f);
+  if (source_reader_)
+    source_reader_->Exit(f);
   return f;
 }
 
@@ -102,9 +106,10 @@ absl::StatusOr<List> Reader::ReadAll() {
     if (!f.ok()) {
       return f.status();
     }
-	if (!f.value().has_value()) break;
-	mlist.Append(std::move(f.value().value()));
-   } while (!Done());
+    if (!f.value().has_value())
+      break;
+    mlist.Append(std::move(f.value().value()));
+  } while (!Done());
   return List(mlist);
 }
 
@@ -112,33 +117,33 @@ char Reader::Next() {
   char c = GetChar();
 
   switch (c) {
-    case '"':
-      state_ = Reader::State::kString;
-      break;
-    case '(':
-      state_ = Reader::State::kListStart;
-      break;
-    case ')':
-      state_ = Reader::State::kListEnd;
-      break;
-    case '[':
-      state_ = Reader::State::kVectorStart;
-      break;
-    case ']':
-      state_ = Reader::State::kVectorEnd;
-      break;
-    case ';':
-      state_ = Reader::State::kComment;
-      break;
-    default:
-      if (stream_.eof()) {
-        state_ = Reader::State::kEnd;
-      } else if (isspace(c) || c == ',') {
-        state_ = Reader::State::kSkip;
-      } else {
-        state_ = Reader::State::kNumberOrSymbol;
-      }
-      break;
+  case '"':
+    state_ = Reader::State::kString;
+    break;
+  case '(':
+    state_ = Reader::State::kListStart;
+    break;
+  case ')':
+    state_ = Reader::State::kListEnd;
+    break;
+  case '[':
+    state_ = Reader::State::kVectorStart;
+    break;
+  case ']':
+    state_ = Reader::State::kVectorEnd;
+    break;
+  case ';':
+    state_ = Reader::State::kComment;
+    break;
+  default:
+    if (stream_.eof()) {
+      state_ = Reader::State::kEnd;
+    } else if (isspace(c) || c == ',') {
+      state_ = Reader::State::kSkip;
+    } else {
+      state_ = Reader::State::kNumberOrSymbol;
+    }
+    break;
   }
   return c;
 }
@@ -149,15 +154,15 @@ const char kCarriageReturn = 0x0d;
 
 static std::optional<char> EscapeChar(char c) {
   switch (c) {
-    case '\\':
-    case '"':
-      return c;
-    case 'n':
-      return kNewline;
-    case 't':
-      return kTab;
-    case 'r':
-      return kCarriageReturn;
+  case '\\':
+  case '"':
+    return c;
+  case 'n':
+    return kNewline;
+  case 't':
+    return kTab;
+  case 'r':
+    return kCarriageReturn;
   }
   return std::optional<char>();
 }
@@ -165,7 +170,8 @@ static std::optional<char> EscapeChar(char c) {
 constexpr auto max_size = std::numeric_limits<std::streamsize>::max();
 void Reader::ReadComment() {
   stream_.ignore(max_size, '\n');
-  if (source_reader_) source_reader_->NewLine();
+  if (source_reader_)
+    source_reader_->NewLine();
 }
 
 absl::StatusOr<std::string> Reader::ReadString() {
@@ -177,7 +183,8 @@ absl::StatusOr<std::string> Reader::ReadString() {
       char escaped_c = GetChar();
       auto opt_c = EscapeChar(escaped_c);
       if (!opt_c.has_value()) {
-        return absl::InvalidArgumentError(std::string("invalid escape sequence: \\") + escaped_c);
+        return absl::InvalidArgumentError(
+            std::string("invalid escape sequence: \\") + escaped_c);
       }
       result.push_back(*opt_c);
     } else {
@@ -187,7 +194,6 @@ absl::StatusOr<std::string> Reader::ReadString() {
   }
   return result;
 }
-
 
 absl::StatusOr<Form::Value> Reader::ReadLiteralOrSymbol(char c) {
   std::int64_t num = 0;
@@ -211,12 +217,12 @@ absl::StatusOr<Form::Value> Reader::ReadLiteralOrSymbol(char c) {
 
     if (i == 0) {
       switch (c) {
-        case '+':
-          multiplier = 1;
-          continue;
-        case '-':
-          multiplier = -1;
-          continue;
+      case '+':
+        multiplier = 1;
+        continue;
+      case '-':
+        multiplier = -1;
+        continue;
       }
     }
 
@@ -243,21 +249,21 @@ absl::StatusOr<Form::Value> Reader::ReadLiteralOrSymbol(char c) {
   }
 
   switch (state) {
-    case kUnknown:
-      return absl::InvalidArgumentError("failed to read");
-    case kInteger:
-      return num * multiplier;
-    case kFloat:
-      return static_cast<double>(num) / float_div * multiplier;
-    case kSymbol:
-      if (str == "nil") {
-        return Nil::Get();
-      } else if (str == "true") {
-        return true;
-      } else if (str == "false") {
-        return false;
-      }
-      return &Symbol::Get(str);
+  case kUnknown:
+    return absl::InvalidArgumentError("failed to read");
+  case kInteger:
+    return num * multiplier;
+  case kFloat:
+    return static_cast<double>(num) / float_div * multiplier;
+  case kSymbol:
+    if (str == "nil") {
+      return Nil::Get();
+    } else if (str == "true") {
+      return true;
+    } else if (str == "false") {
+      return false;
+    }
+    return &Symbol::Get(str);
   }
 
   return absl::InvalidArgumentError("failed to read");
@@ -293,7 +299,8 @@ absl::StatusOr<Vector> Reader::ReadVector() {
       break;
     }
     forms.push_back(form.value().value());
-  } while (state_ != Reader::State::kEnd && state_ != Reader::State::kVectorEnd);
+  } while (state_ != Reader::State::kEnd &&
+           state_ != Reader::State::kVectorEnd);
 
   // Advance to the next state
   Next();
@@ -301,32 +308,32 @@ absl::StatusOr<Vector> Reader::ReadVector() {
   return forms;
 }
 
-std::string Reader::StateToString(const Reader::State& state) {
+std::string Reader::StateToString(const Reader::State &state) {
   switch (state) {
-    case Reader::State::kEnd:
-      return "End";
-    case Reader::State::kSkip:
-      return "Skip";
-    case Reader::State::kNumberOrSymbol:
-      return "NumberOrSymbol";
-    case Reader::State::kString:
-      return "String";
-    case Reader::State::kListStart:
-      return "ListStart";
-    case Reader::State::kListEnd:
-      return "ListEnd";
-    case Reader::State::kVectorStart:
-      return "VectorStart";
-    case Reader::State::kVectorEnd:
-      return "VectorEnd";
-    case Reader::State::kComment:
-      return "Comment";
+  case Reader::State::kEnd:
+    return "End";
+  case Reader::State::kSkip:
+    return "Skip";
+  case Reader::State::kNumberOrSymbol:
+    return "NumberOrSymbol";
+  case Reader::State::kString:
+    return "String";
+  case Reader::State::kListStart:
+    return "ListStart";
+  case Reader::State::kListEnd:
+    return "ListEnd";
+  case Reader::State::kVectorStart:
+    return "VectorStart";
+  case Reader::State::kVectorEnd:
+    return "VectorEnd";
+  case Reader::State::kComment:
+    return "Comment";
   }
   return "INVALID";
 }
 
-std::ostream& operator<<(std::ostream& os, const Reader::State& state) {
+std::ostream &operator<<(std::ostream &os, const Reader::State &state) {
   os << Reader::StateToString(state);
   return os;
 }
-}  // namespace dub
+} // namespace dub

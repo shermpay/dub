@@ -27,8 +27,7 @@ class Derived : public Base {
   }
 };
 
-
 int main() {
   std::cout << absl::StreamFormat("%v", Derived()) << std::endl;
   return 0;
-};
+}

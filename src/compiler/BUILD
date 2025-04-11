@@ -9,7 +9,6 @@ cc_library(
     hdrs = ["constant.h"],
     deps = [
         "//src:form",
-        "//src:symbol",
         "@absl//absl/strings:str_format",
     ],
 )
@@ -25,14 +24,23 @@ cc_test(
 
 cc_library(
     name = "expression",
-    srcs = ["expression.cc"],
-    hdrs = ["expression.h"],
+    srcs = [
+        "expression.cc",
+        "expr_format.cc",
+    ],
+    hdrs = [
+        "expression.h",
+        "type_exprs.h",
+        "expr_format.h",
+    ],
     deps = [
         ":constant",
         ":type",
         "//src:form",
+        "//src:symbol",
         "@absl//absl/strings:str_format",
         "@absl//absl/types:span",
+        "@llvm-project//llvm:Core",
     ],
 )
 
@@ -42,8 +50,10 @@ cc_library(
     hdrs = ["expr_info.h"],
     deps = [
         ":type",
+        "//src:base",
         "//src:source_info",
         "@absl//absl/strings:str_format",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -53,7 +63,6 @@ cc_library(
     hdrs = ["type.h"],
     deps = [
         ":constant",
-        "//src:form",
         "//src:symbol",
         "@absl//absl/status:statusor",
         "@absl//absl/strings:str_format",
@@ -122,6 +131,8 @@ cc_library(
         ":expr_info",
         ":expression",
         ":module",
+        ":result",
+        "//src:base",
         "@absl//absl/status:statusor",
     ],
 )
@@ -172,6 +183,7 @@ cc_library(
     srcs = ["result.cc"],
     hdrs = ["result.h"],
     deps = [
+        "//src:base",
         "@absl//absl/status:statusor",
         "@absl//absl/strings:str_format",
     ],
@@ -194,7 +206,6 @@ cc_library(
     deps = [
         ":expression",
         ":semantic",
-        "//src:form",
         "//src:symbol",
         "@llvm-project//llvm:Core",
     ],

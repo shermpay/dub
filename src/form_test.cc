@@ -2,20 +2,20 @@
 
 #include <sstream>
 
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #include "absl/strings/str_format.h"
+#include "llvm/Support/FormatVariadic.h"
 
+#include "src/form_format.h"
 #include "src/symbol.h"
 
 using ::dub::Form;
 using ::dub::List;
 using ::dub::Symbol;
 
-TEST(FormTest, IntEquals) {
-  EXPECT_EQ(Form(0), Form(0));
-}
+TEST(FormTest, IntEquals) { EXPECT_EQ(Form(0), Form(0)); }
 
 TEST(FormTest, SymbolEquals) {
   EXPECT_EQ(Symbol::Get("foo"), Symbol::Get("foo"));
@@ -100,25 +100,49 @@ TEST(ListTest, Tail) {
   EXPECT_EQ(list2.Head(), Form(1));
 }
 
-TEST(FormatTest, FormatSymbol) {
+// TEST(FormatTest, AbslFormatSymbol) {
+//   auto& symbol = Symbol::Get("the-sym");
+
+//   EXPECT_EQ(absl::StrFormat("=%v=", symbol), "=the-sym=");
+
+//   EXPECT_EQ(absl::StrFormat("=%v=", Form(symbol)), "=the-sym=");
+// }
+
+// TEST(FormatTest, AbslFormatStrForm) {
+//   auto str  = Form("hey you!");
+
+//   EXPECT_EQ(absl::StrFormat("=%v=", str), "=hey you!=");
+// }
+
+// TEST(FormatTest, AbslFormatIntForm) {
+//   EXPECT_EQ(absl::StrFormat("_%v_", Form(42)), "_42_");
+// }
+
+// TEST(FormatTest, AbslFormatList) {
+//   List list = List::Make(Form(0), Form(1));
+//   EXPECT_EQ(absl::StrFormat("~%v~", list), "~(0 1)~");
+// }
+
+
+TEST(FormatTest, LLVMFormatSymbol) {
   auto& symbol = Symbol::Get("the-sym");
 
-  EXPECT_EQ(absl::StrFormat("=%v=", symbol), "=the-sym=");
+  EXPECT_EQ(llvm::formatv(true, "={0}=", symbol).str(), "=the-sym=");
 
-  EXPECT_EQ(absl::StrFormat("=%v=", Form(symbol)), "=the-sym=");
+  EXPECT_EQ(llvm::formatv("={0}=", Form(symbol)).str(), "=the-sym=");
 }
 
-TEST(FormatTest, FormatStrForm) {
+TEST(FormatTest, LLVMFormatStrForm) {
   auto str  = Form("hey you!");
 
-  EXPECT_EQ(absl::StrFormat("=%v=", str), "=hey you!=");
+  EXPECT_EQ(llvm::formatv("={0}=", str).str(), "=hey you!=");
 }
 
-TEST(FormatTest, FormatIntForm) {
-  EXPECT_EQ(absl::StrFormat("_%v_", Form(42)), "_42_");
+TEST(FormatTest, LLVMFormatIntForm) {
+  EXPECT_EQ(llvm::formatv("_{0}_", Form(42)).str(), "_42_");
 }
 
-TEST(FormatTest, FormatList) {
+TEST(FormatTest, LLVMFormatList) {
   List list = List::Make(Form(0), Form(1));
-  EXPECT_EQ(absl::StrFormat("~%v~", list), "~(0 1)~");
+  EXPECT_EQ(llvm::formatv("~{0}~", list).str(), "~(0 1)~");
 }

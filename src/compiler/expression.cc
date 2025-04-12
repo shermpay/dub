@@ -1,9 +1,6 @@
 #include "src/compiler/expression.h"
 #include "src/compiler/type_exprs.h"
 
-#include "absl/strings/str_format.h"
-#include "absl/types/span.h"
-
 namespace dub {
 
 TypeExpr TypeUnit() {
@@ -19,7 +16,7 @@ bool TypeExpr::Struct::operator==(const Struct &rhs) const {
   return fields_ == rhs.fields_;
 }
 
-const absl::Span<const TypeExpr::NameType> TypeExpr::Struct::fields() const {
+const llvm::ArrayRef<TypeExpr::NameType> TypeExpr::Struct::fields() const {
   return fields_;
 }
 
@@ -30,7 +27,7 @@ bool TypeExpr::operator==(const TypeExpr &rhs) const {
 
 namespace special {
 
-absl::Span<const Symbol *const> Symbols() {
+llvm::ArrayRef<const Symbol *const> Symbols() {
   static std::vector<const Symbol *> syms{
       &kFn, &kIf, &kReturn, &kModule, &kType, &kDeclare, &kVar, &kSet,
   };

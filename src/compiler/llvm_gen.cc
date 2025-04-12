@@ -4,7 +4,6 @@
 #include <optional>
 
 #include "absl/status/statusor.h"
-#include "absl/types/span.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/Constants.h"
@@ -13,7 +12,6 @@
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Type.h"
-#include "llvm/Support/raw_os_ostream.h"
 
 #include "src/compiler/expression.h"
 #include "src/compiler/type.h"
@@ -91,7 +89,10 @@ struct ConvertType final {
                                  /*isPacked=*/false);
   }
 
-  llvm::Type *operator()(Constant type) { (void)type; return nullptr; }
+  llvm::Type *operator()(Constant type) {
+    (void)type;
+    return nullptr;
+  }
 };
 
 } // namespace
@@ -110,7 +111,7 @@ std::optional<llvm::AllocaInst *> LlvmGen::LookupLocal(const Symbol &name) {
 
 absl::StatusOr<llvm::Value *>
 LlvmGen::BuiltinFuncGen(BuiltinInfo info, const Symbol &name,
-                        const absl::Span<const Expression> args) {
+                        const llvm::ArrayRef<Expression> args) {
   (void)name;
   std::cout << "BuiltinFuncGen: " << static_cast<int>(info.kind()) << std::endl;
   switch (info.kind()) {
@@ -143,13 +144,16 @@ struct TypeDefGen final {
     return type_def.type().Match(*this);
   }
 
-  absl::StatusOr<llvm::Type *> operator()(const auto &type) { (void)type; return nullptr; }
+  absl::StatusOr<llvm::Type *> operator()(const auto &type) {
+    (void)type;
+    return nullptr;
+  }
   absl::StatusOr<llvm::Type *> operator()(const Type::Tuple &tuple) {
-	(void)tuple;
+    (void)tuple;
     return absl::UnimplementedError("typedef tuple");
   }
   absl::StatusOr<llvm::Type *> operator()(const Type::Struct &st) {
-	(void)st;
+    (void)st;
     return absl::UnimplementedError("typedef struct");
   }
 };
@@ -165,7 +169,7 @@ struct ExprGen final {
   }
 
   absl::StatusOr<llvm::Value *> operator()(const Nil &x) const {
-	(void)x;
+    (void)x;
     return llvm::ConstantPointerNull::get(
         llvm::PointerType::get(*llgen.context_, /*AddressSpace=*/0));
   }
@@ -204,9 +208,8 @@ struct ExprGen final {
                                       alloca_inst.value(), x->value());
   }
 
-  absl::StatusOr<llvm::Value *>
-  operator()(const MemberAccess &x) const {
-	(void)x;
+  absl::StatusOr<llvm::Value *> operator()(const MemberAccess &x) const {
+    (void)x;
     return absl::UnimplementedError("member access is not implemented");
   }
 
@@ -259,7 +262,7 @@ struct ExprGen final {
         callee, args, callee->getReturnType()->isVoidTy() ? "" : "calltmp");
   }
   absl::StatusOr<llvm::Value *> operator()(const If &expr) const {
-	(void)expr;
+    (void)expr;
     return absl::UnimplementedError("Codegen If");
   }
   absl::StatusOr<llvm::Value *> operator()(const Fn &fn) const {
@@ -281,8 +284,7 @@ struct ExprGen final {
     return ll_func;
   }
 
-  absl::StatusOr<llvm::Value *>
-  operator()(const Return &expr) const {
+  absl::StatusOr<llvm::Value *> operator()(const Return &expr) const {
     // TODO: Handle void.
     // TODO: Handle empty return.
     if (expr.HasValue()) {
@@ -295,8 +297,7 @@ struct ExprGen final {
     return absl::UnimplementedError("Codegen Return no value");
   }
 
-  absl::StatusOr<llvm::Value *>
-  operator()(const VarDef &expr) const {
+  absl::StatusOr<llvm::Value *> operator()(const VarDef &expr) const {
     auto type = llgen.typed_module_->TypeInfoRef().LookupName(expr.name());
     if (!type.has_value()) {
       return absl::FailedPreconditionError(
@@ -320,8 +321,8 @@ struct ExprGen final {
 
               return alloca_inst.value();
             },
-            [this, &expr](const MemberAccess &access)
-                -> absl::StatusOr<llvm::Value *> {
+            [this, &expr](
+                const MemberAccess &access) -> absl::StatusOr<llvm::Value *> {
               // %2 = alloca %struct.Point, align 4
               // %3 = getelementptr inbounds %struct.Point, ptr %2, i32 0, i32 0
               // Value * 	CreateStructGEP (Type *Ty, Value *Ptr, unsigned
@@ -341,11 +342,6 @@ struct ExprGen final {
                 return absl::FailedPreconditionError(absl::StrFormat(
                     "%v failed: var '%v' is not defined", expr, expr.place()));
               }
-              std::cout << "Struct Value: ";
-              llvm::raw_os_ostream ll_ostream(std::cout);
-              alloca_inst.value()->print(ll_ostream, true);
-              std::cout << std::endl;
-              // TODO: lookup field
               return this->llgen.builder_->CreateStructGEP(
                   lltype, alloca_inst.value(), 0);
             },
@@ -360,7 +356,7 @@ struct ExprGen final {
   }
 
   absl::StatusOr<llvm::Value *> operator()(const ModuleDecl &expr) const {
-	(void)expr;
+    (void)expr;
     return nullptr;
   }
 
@@ -393,9 +389,8 @@ struct ExprGen final {
     }
     return nullptr;
   }
-  absl::StatusOr<llvm::Value *>
-  operator()(const Array &expr) const {
-	(void)expr;
+  absl::StatusOr<llvm::Value *> operator()(const Array &expr) const {
+    (void)expr;
     return absl::UnimplementedError("Codegen Array");
   }
 };

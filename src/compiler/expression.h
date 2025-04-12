@@ -7,7 +7,6 @@
 #include "src/symbol.h"
 
 #include "absl/strings/str_format.h"
-#include "absl/types/span.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/FormatVariadicDetails.h"
 
@@ -39,7 +38,7 @@ public:
 
 private:
   virtual const Symbol &Id() const = 0;
-  virtual const absl::Span<const ExprT> SubExprs() const = 0;
+  virtual const llvm::ArrayRef<ExprT> SubExprs() const = 0;
   friend struct llvm::format_provider<ExprBase<ExprT>>;
 };
 
@@ -72,14 +71,14 @@ public:
 
   const ExprT &target() const { return exprs_[0]; }
 
-  const absl::Span<const ExprT> args() const {
-    return absl::MakeSpan(exprs_).subspan(1);
+  const llvm::ArrayRef<ExprT> args() const {
+    return llvm::ArrayRef(exprs_).slice(1);
   }
 
 private:
   const Symbol &Id() const override { return Symbol::Get("call"); }
 
-  const absl::Span<const ExprT> SubExprs() const override { return exprs_; }
+  const llvm::ArrayRef<ExprT> SubExprs() const override { return exprs_; }
 
   std::vector<ExprT> exprs_;
 };
@@ -114,7 +113,7 @@ public:
 private:
   const Symbol &Id() const override { return Symbol::Get("if"); }
 
-  const absl::Span<const ExprT> SubExprs() const override { return *exprs_; }
+  const llvm::ArrayRef<ExprT> SubExprs() const override { return *exprs_; }
 
   std::unique_ptr<std::array<ExprT, 3>> exprs_;
 };
@@ -138,15 +137,15 @@ public:
 private:
   const Symbol &Id() const override { return Symbol::Get("return"); }
 
-  const absl::Span<const ExprT> SubExprs() const override {
+  const llvm::ArrayRef<ExprT> SubExprs() const override {
     if (value_) {
-      return absl::MakeSpan(value_.get(), 1);
+      return *value_;
     } else {
-      return absl::Span<const ExprT>();
+      return llvm::ArrayRef<ExprT>();
     }
   }
 
-  std::unique_ptr<ExprT> value_;
+  std::unique_ptr<const ExprT> value_;
 };
 
 /*
@@ -187,11 +186,11 @@ public:
     params_ = std::move(params);
   }
 
-  absl::Span<const Symbol *const> params() const { return params_; }
+  llvm::ArrayRef<const Symbol *const> params() const { return params_; }
 
   void SetBody(std::vector<ExprT> &body) { body_ = std::move(body); }
 
-  absl::Span<const ExprT> body() const { return body_; }
+  llvm::ArrayRef<ExprT> body() const { return body_; }
 
   template <typename Sink>
   friend void AbslStringify(Sink &sink, const Fn<ExprT> &fn) {
@@ -464,10 +463,6 @@ struct ExprId final {
     // TODO: Add module name
     return lhs.id == rhs.id;
   }
-  template <typename H> friend H AbslHashValue(H h, const ExprId &m) {
-    // TODO: Add module name
-    return H::combine(std::move(h), m.id);
-  }
 };
 
 using Call = exprs::Call<Expression>;
@@ -502,7 +497,7 @@ static const Symbol &kDeclare = Symbol::Get("declare");
 static const Symbol &kVar = Symbol::Get("var");
 static const Symbol &kSet = Symbol::Get("set");
 
-absl::Span<const Symbol *const> Symbols();
+llvm::ArrayRef<const Symbol *const> Symbols();
 
 } // namespace special
 
@@ -598,5 +593,17 @@ private:
 };
 
 } // namespace dub
+
+template <> struct llvm::DenseMapInfo<dub::ExprId> {
+  static inline dub::ExprId getEmptyKey() { return dub::ExprId::Default(); }
+  static inline dub::ExprId getTombstoneKey() {
+    return dub::ExprId{nullptr, static_cast<std::uint64_t>(-1)};
+  }
+  static unsigned getHashValue(const dub::ExprId &val) { return val.ToKey(); }
+
+  static bool isEqual(const dub::ExprId &LHS, const dub::ExprId &RHS) {
+    return LHS == RHS;
+  }
+};
 
 #endif /* DUB_EXPRESSION_H_ */

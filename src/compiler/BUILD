@@ -39,7 +39,6 @@ cc_library(
         "//src:form",
         "//src:symbol",
         "@absl//absl/strings:str_format",
-        "@absl//absl/types:span",
         "@llvm-project//llvm:Core",
     ],
 )
@@ -66,7 +65,6 @@ cc_library(
         "//src:symbol",
         "@absl//absl/status:statusor",
         "@absl//absl/strings:str_format",
-        "@absl//absl/types:span",
     ],
 )
 
@@ -89,7 +87,6 @@ cc_library(
         ":expr_info",
         ":expression",
         "@absl//absl/strings:str_format",
-        "@absl//absl/types:span",
     ],
 )
 
@@ -102,9 +99,7 @@ cc_library(
         ":module",
         ":type",
         ":type_info",
-        "@absl//absl/container:flat_hash_map",
         "@absl//absl/strings:str_format",
-        "@absl//absl/types:span",
     ],
 )
 
@@ -159,7 +154,6 @@ cc_library(
         ":type_info",
         ":typed_module",
         "//src:symbol",
-        "@absl//absl/container:node_hash_map",
         "@absl//absl/status",
         "@absl//absl/status:statusor",
         "@absl//absl/strings:str_format",

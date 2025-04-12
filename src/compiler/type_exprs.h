@@ -4,6 +4,8 @@
 #include "src/compiler/constant.h"
 #include "src/symbol.h"
 
+#include "llvm/ADT/ArrayRef.h"
+
 namespace dub {
 
 /// TypeExpr is a type expression.
@@ -50,7 +52,7 @@ public:
 
     const Symbol &name() const { return *name_; }
 
-    absl::Span<const TypeExpr> types() const { return types_; }
+    llvm::ArrayRef<TypeExpr> types() const { return types_; }
 
   private:
     const Symbol *name_;
@@ -87,7 +89,7 @@ public:
     bool operator==(const Struct &rhs) const;
     bool operator!=(const Struct &rhs) const { return !(*this == rhs); }
 
-    const absl::Span<const NameType> fields() const;
+    const llvm::ArrayRef<NameType> fields() const;
 
   private:
     std::vector<TypeExpr::NameType> fields_;

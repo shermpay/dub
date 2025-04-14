@@ -34,9 +34,9 @@ public:
 
   void GenerateModule(const Module &mod);
 
-  absl::StatusOr<llvm::Value *> GenerateExpression(const Expression &expr);
+  llvm::Expected<llvm::Value *> GenerateExpression(const Expression &expr);
 
-  absl::Status WriteBitcode(llvm::raw_fd_stream *stream);
+  llvm::Error WriteBitcode(llvm::raw_fd_stream *stream);
 
   friend struct ExprGen;
 
@@ -44,7 +44,7 @@ private:
   void AddLocal(const Symbol &, llvm::AllocaInst *);
   std::optional<llvm::AllocaInst *> LookupLocal(const Symbol &);
 
-  absl::StatusOr<llvm::Value *>
+  llvm::Expected<llvm::Value *>
   BuiltinFuncGen(BuiltinInfo info, const Symbol &name,
                  const llvm::ArrayRef<Expression> args);
 

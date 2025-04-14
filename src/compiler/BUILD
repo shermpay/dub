@@ -9,7 +9,6 @@ cc_library(
     hdrs = ["constant.h"],
     deps = [
         "//src:form",
-        "@absl//absl/strings:str_format",
     ],
 )
 
@@ -38,7 +37,6 @@ cc_library(
         ":type",
         "//src:form",
         "//src:symbol",
-        "@absl//absl/strings:str_format",
         "@llvm-project//llvm:Core",
     ],
 )
@@ -51,7 +49,6 @@ cc_library(
         ":type",
         "//src:base",
         "//src:source_info",
-        "@absl//absl/strings:str_format",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -64,7 +61,7 @@ cc_library(
         ":constant",
         "//src:symbol",
         "@absl//absl/status:statusor",
-        "@absl//absl/strings:str_format",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -86,7 +83,6 @@ cc_library(
     deps = [
         ":expr_info",
         ":expression",
-        "@absl//absl/strings:str_format",
     ],
 )
 
@@ -99,7 +95,6 @@ cc_library(
         ":module",
         ":type",
         ":type_info",
-        "@absl//absl/strings:str_format",
     ],
 )
 
@@ -154,9 +149,6 @@ cc_library(
         ":type_info",
         ":typed_module",
         "//src:symbol",
-        "@absl//absl/status",
-        "@absl//absl/status:statusor",
-        "@absl//absl/strings:str_format",
     ],
 )
 
@@ -179,7 +171,6 @@ cc_library(
     deps = [
         "//src:base",
         "@absl//absl/status:statusor",
-        "@absl//absl/strings:str_format",
     ],
 )
 

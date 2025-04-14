@@ -6,7 +6,6 @@
 #include "src/form.h"
 #include "src/symbol.h"
 
-#include "absl/strings/str_format.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/FormatVariadicDetails.h"
 
@@ -22,19 +21,8 @@ namespace exprs {
 
 template <typename ExprT = Expression> class ExprBase {
 public:
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const ExprBase<ExprT> &expr) {
-    absl::Format(&sink, "(%v", expr.Id());
-    for (const auto &expr : expr.SubExprs()) {
-      absl::Format(&sink, " %v", expr);
-    }
-    sink.Append(")");
-  }
   friend std::ostream &operator<<(std::ostream &os,
-                                  const ExprBase<ExprT> &expr) {
-    os << absl::StreamFormat("%v", expr);
-    return os;
-  }
+                                  const ExprBase<ExprT> &expr);
 
 private:
   virtual const Symbol &Id() const = 0;
@@ -64,10 +52,7 @@ public:
 
   bool operator!=(const Call<ExprT> &rhs) const { return !(*this == rhs); }
 
-  friend std::ostream &operator<<(std::ostream &os, const Call<ExprT> &expr) {
-    os << absl::StreamFormat("%v", expr);
-    return os;
-  }
+  friend std::ostream &operator<<(std::ostream &os, const Call<ExprT> &expr);
 
   const ExprT &target() const { return exprs_[0]; }
 
@@ -170,13 +155,7 @@ public:
 
   bool operator!=(const Fn<ExprT> &rhs) const { return !(*this == rhs); }
 
-  friend std::ostream &operator<<(std::ostream &os, const Fn<ExprT> &fn) {
-    os << absl::StreamFormat("%v", fn);
-    return os;
-  }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const Fn<ExprT> &fn);
+  friend std::ostream &operator<<(std::ostream &os, const Fn<ExprT> &fn);
 
   void SetName(const Symbol &name) { name_ = &name; }
 
@@ -191,30 +170,6 @@ public:
   void SetBody(std::vector<ExprT> &body) { body_ = std::move(body); }
 
   llvm::ArrayRef<ExprT> body() const { return body_; }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const Fn<ExprT> &fn) {
-    sink.Append("(fn ");
-    if (fn.name_ != nullptr) {
-      absl::Format(&sink, "%v ", *fn.name_);
-    }
-
-    sink.Append("[");
-    bool first = true;
-    for (const auto &sym : fn.params_) {
-      if (first) {
-        first = false;
-      } else {
-        sink.Append(" ");
-      }
-      absl::Format(&sink, "%v", *sym);
-    }
-    sink.Append("]");
-    for (const auto &expr : fn.body_) {
-      absl::Format(&sink, " %v", expr);
-    }
-    sink.Append(")");
-  }
 
 private:
   const Symbol *name_;
@@ -232,25 +187,7 @@ public:
 
   bool operator!=(const Array<ExprT> &rhs) const { return !(*this == rhs); }
 
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const Array<ExprT> &expr) {
-    sink.Append("[");
-    bool first = true;
-    for (const auto &expr : expr.exprs_) {
-      if (first)
-        first = false;
-      else
-        sink.Append(" ");
-
-      AbslStringify(sink, expr);
-    }
-    sink.Append("]");
-  }
-
-  friend std::ostream &operator<<(std::ostream &os, const Array<ExprT> &expr) {
-    os << absl::StreamFormat("%v", expr);
-    return os;
-  }
+  friend std::ostream &operator<<(std::ostream &os, const Array<ExprT> &expr);
 
   llvm::ArrayRef<ExprT> exprs() const { return exprs_; }
 
@@ -270,19 +207,7 @@ public:
   }
 
   bool operator!=(const VarDef &rhs) const { return !(*this == rhs); }
-  friend std::ostream &operator<<(std::ostream &os, const VarDef &var) {
-    os << absl::StreamFormat("%v", var);
-    return os;
-  }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const VarDef &var) {
-    absl::Format(&sink, "(var %v %v", var.name_, var.type_);
-    if (var.init_) {
-      absl::Format(&sink, " %v", *var.init_);
-    }
-    sink.Append(")");
-  }
+  friend std::ostream &operator<<(std::ostream &os, const VarDef &var);
 
   const Symbol &name() const { return *name_; }
 
@@ -308,16 +233,7 @@ public:
   }
 
   bool operator!=(const MemberAccess &rhs) const { return !(*this == rhs); }
-  friend std::ostream &operator<<(std::ostream &os,
-                                  const MemberAccess &access) {
-    os << absl::StreamFormat("%v", access);
-    return os;
-  }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const MemberAccess &expr) {
-    absl::Format(&sink, "(. %v %v)", *expr.struct_expr_, expr.member_);
-  }
+  friend std::ostream &operator<<(std::ostream &os, const MemberAccess &access);
 
   const ExprT &struct_expr() const { return *struct_expr_; }
 
@@ -328,32 +244,7 @@ private:
   const Symbol *member_;
 };
 
-// template <typename ExprT>
-// class Assignable final {
-//  public:
-//   Assignable(const Symbol& name) : kind_(&name) {}
-
-//   friend std::ostream& operator<<(std::ostream& os, const Assignable& expr) {
-//     os << absl::StreamFormat("%v", expr);
-//     return os;
-//   }
-
-//   template <typename Sink>
-//   friend void AbslStringify(Sink& sink, const Assignable& expr) {
-//     std::visit([&sink](const auto& kind) {
-//       AbslStringify(sink, kind);
-//     }, expr.kind_);
-//   }
-
-//  private:
-// using Assignable = std::variant<const Symbol*, MemberAccess<ExprT>> kind_;
-// };
-
 using Assignable = std::variant<const Symbol *, MemberAccess<Expression>>;
-template <typename Sink>
-void AbslStringify(Sink &sink, const Assignable &expr) {
-  std::visit([&sink](const auto &kind) { AbslStringify(sink, kind); }, expr);
-}
 
 template <typename ExprT> class Set final {
 public:
@@ -366,15 +257,7 @@ public:
   }
 
   bool operator!=(const Set &rhs) const { return !(*this == rhs); }
-  friend std::ostream &operator<<(std::ostream &os, const Set &expr) {
-    os << absl::StreamFormat("%v", expr);
-    return os;
-  }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const Set &expr) {
-    absl::Format(&sink, "(set %v %v)", expr.place_, *expr.value_);
-  }
+  friend std::ostream &operator<<(std::ostream &os, const Set &expr);
 
   const Assignable &place() const { return place_; }
 
@@ -399,15 +282,7 @@ public:
 
   bool operator!=(const NameDecl &rhs) const { return !(*this == rhs); }
 
-  friend std::ostream &operator<<(std::ostream &os, const NameDecl &def) {
-    os << absl::StreamFormat("%v", def);
-    return os;
-  }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const NameDecl &def) {
-    absl::Format(&sink, "(declare %v %v)", def.name_, def.type_);
-  }
+  friend std::ostream &operator<<(std::ostream &os, const NameDecl &def);
 
   const Symbol &name() const { return *name_; }
 
@@ -433,17 +308,7 @@ struct ModuleDecl final {
   bool operator==(const ModuleDecl &rhs) const { return name == rhs.name; }
 
   bool operator!=(const ModuleDecl &rhs) const { return !(*this == rhs); }
-  friend std::ostream &operator<<(std::ostream &os, const ModuleDecl &header) {
-    os << "(module " << header.name << ")";
-    return os;
-  }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const ModuleDecl &expr) {
-    sink.Append("(module ");
-    absl::Format(&sink, "%v", *expr.name);
-    sink.Append(")");
-  }
+  friend std::ostream &operator<<(std::ostream &os, const ModuleDecl &header);
 
   void SetName(const Symbol &name) noexcept { this->name = &name; }
 };
@@ -540,18 +405,8 @@ public:
 
   bool operator!=(const Expression &rhs) const { return !(*this == rhs); }
 
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const Expression &expr) {
-    std::visit(
-        [&sink](const auto &kind) -> auto { return AbslStringify(sink, kind); },
-        expr.kind_);
-  }
-
   friend std::ostream &operator<<(std::ostream &os,
-                                  const Expression &expression) {
-    os << absl::StreamFormat("%v", expression);
-    return os;
-  }
+                                  const Expression &expression);
 
   Kind &kind() { return kind_; }
 

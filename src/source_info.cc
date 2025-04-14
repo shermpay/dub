@@ -14,6 +14,14 @@ llvm::StringSet<> &FilenamesPool() {
   return pool;
 }
 
+std::ostream &operator<<(std::ostream &os, const SourceLocation location) {
+  return os << llvm::formatv("{0}", location).str();
+}
+
+std::ostream &operator<<(std::ostream &os, const SourceInfo info) {
+  return os << llvm::formatv("{0}", info).str();
+}
+
 std::string FormDebugString(const Form &form) noexcept {
   return llvm::formatv("{0} => {1}", form, *form.info).str();
 }

@@ -6,7 +6,6 @@
 #include "src/symbol.h"
 
 #include "absl/status/statusor.h"
-#include "absl/strings/str_format.h"
 #include "llvm/ADT/ArrayRef.h"
 
 #include <ostream>
@@ -27,35 +26,6 @@ enum class Basic {
   kF32,
   kF64,
 };
-
-template <typename Sink> void AbslStringify(Sink &sink, const Basic &type) {
-  switch (type) {
-  case Basic::kUnit:
-    sink.Append("unit");
-    break;
-  case Basic::kBool:
-    sink.Append("bool");
-    break;
-  case Basic::kI8:
-    sink.Append("i8");
-    break;
-  case Basic::kI16:
-    sink.Append("i16");
-    break;
-  case Basic::kI32:
-    sink.Append("i32");
-    break;
-  case Basic::kI64:
-    sink.Append("i64");
-    break;
-  case Basic::kF32:
-    sink.Append("f32");
-    break;
-  case Basic::kF64:
-    sink.Append("f64");
-    break;
-  }
-}
 
 // TODO: Is this too generic?
 //  What about the following:
@@ -155,16 +125,7 @@ public:
     return kind_ == rhs.kind_ && prop_ == rhs.prop_;
   }
 
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const Type type) {
-    std::visit([&sink](const auto &kind) { AbslStringify(sink, kind); },
-               type.kind_);
-  }
-
-  friend std::ostream &operator<<(std::ostream &os, const Type &type) {
-    os << absl::StreamFormat("%v", type);
-    return os;
-  }
+  friend std::ostream &operator<<(std::ostream &os, const Type &type);
 
   bool IsCallable() const { return prop_ == type::Property::kCallable; }
 
@@ -187,54 +148,6 @@ private:
 };
 
 namespace type {
-
-template <typename Sink>
-void AbslStringify(Sink &sink, const Parameterized<Type> type) {
-  absl::Format(&sink, "(%v", type.name);
-  for (const auto &t : type.types) {
-    absl::Format(&sink, " %v", t);
-  }
-  sink.Append(")");
-}
-
-template <typename Sink>
-void AbslStringify(Sink &sink, const Tuple<Type> type) {
-  sink.Append("(");
-  bool first = true;
-  for (const auto &t : type.types()) {
-    if (first) {
-      first = false;
-    } else {
-      sink.Append(" ");
-    }
-    absl::Format(&sink, "%v", t);
-  }
-  sink.Append(")");
-}
-
-template <typename Sink>
-void AbslStringify(Sink &sink, const Struct<Type>::Field type) {
-  sink.Append("(");
-  AbslStringify(sink, type.name);
-  sink.Append(" ");
-  AbslStringify(sink, type.type);
-  sink.Append(")");
-}
-
-template <typename Sink>
-void AbslStringify(Sink &sink, const Struct<Type> type) {
-  sink.Append("(struct [");
-  bool first = true;
-  for (const auto &t : type.fields()) {
-    if (first) {
-      first = false;
-    } else {
-      sink.Append(" ");
-    }
-    absl::Format(&sink, "%v", t);
-  }
-  sink.Append("])");
-}
 
 Type &Unit();
 Type &Bool();
@@ -287,5 +200,39 @@ bool IsArrayType(Type t);
 } // namespace type
 
 } // namespace dub
+
+namespace llvm {
+
+template <> struct format_provider<dub::Type> {
+  static void format(const dub::Type &type, raw_ostream &stream,
+                     StringRef style);
+};
+
+template <> struct format_provider<dub::type::Basic> {
+  static void format(const dub::type::Basic &type, raw_ostream &stream,
+                     StringRef style);
+};
+
+template <> struct format_provider<dub::type::Parameterized<dub::Type>> {
+  static void format(const dub::type::Parameterized<dub::Type> &type,
+                     raw_ostream &stream, StringRef style);
+};
+
+template <> struct format_provider<dub::type::Tuple<dub::Type>> {
+  static void format(const dub::type::Tuple<dub::Type> &type,
+                     raw_ostream &stream, StringRef style);
+};
+
+template <> struct format_provider<dub::type::Struct<dub::Type>::Field> {
+  static void format(const dub::type::Struct<dub::Type>::Field &type,
+                     raw_ostream &stream, StringRef style);
+};
+
+template <> struct format_provider<dub::type::Struct<dub::Type>> {
+  static void format(const dub::type::Struct<dub::Type> &type,
+                     raw_ostream &stream, StringRef style);
+};
+
+} // namespace llvm
 
 #endif /* DUB_COMPILER_TYPE_H_ */

@@ -29,11 +29,6 @@ public:
     return make_error_code(ErrorCode::kParserError);
   }
 
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const Error &error) {
-    sink.Append(error.message_);
-  }
-
   friend std::ostream &operator<<(std::ostream &os, const Error &error) {
     os << error.message_;
     return os;

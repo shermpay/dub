@@ -4,20 +4,18 @@
 #include <optional>
 #include <variant>
 
-#include "absl/strings/str_format.h"
-
-
 class Base {
- public:
+public:
   virtual std::string Name() const noexcept {
     return absl::StrFormat("name:%d", Id());
   }
 
   template <typename Sink>
-  friend void AbslStringify(Sink& sink, const Base& x) {
+  friend void AbslStringify(Sink &sink, const Base &x) {
     absl::Format(&sink, "string:%d", x.Id());
   }
- private:
+
+private:
   virtual int Id() const noexcept = 0;
 };
 

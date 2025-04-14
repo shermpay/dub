@@ -1,7 +1,6 @@
 #ifndef DUB_SOURCE_INFO_H_
 #define DUB_SOURCE_INFO_H_
 
-#include "absl/strings/str_format.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/Support/FormatVariadicDetails.h"
 
@@ -22,17 +21,8 @@ struct SourceLocation {
   std::uint64_t line_end;
   std::uint64_t column_end;
 
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const SourceLocation &pos) noexcept {
-    absl::Format(&sink, "%s:(%llu,%llu)-(%llu,%llu)", pos.filename,
-                 pos.line_start, pos.column_start, pos.line_end,
-                 pos.column_end);
-  }
-
   friend std::ostream &operator<<(std::ostream &os,
-                                  const SourceLocation location) {
-    return os << absl::StreamFormat("%v", location);
-  }
+                                  const SourceLocation location);
 };
 
 struct SourceInfo final {
@@ -41,14 +31,7 @@ struct SourceInfo final {
   std::string_view line;
   // List* list;
 
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const SourceInfo &info) noexcept {
-    absl::Format(&sink, "%v:%s", info.location, info.line);
-  }
-
-  friend std::ostream &operator<<(std::ostream &os, const SourceInfo info) {
-    return os << absl::StreamFormat("%v", info);
-  }
+  friend std::ostream &operator<<(std::ostream &os, const SourceInfo info);
 };
 
 struct Form;

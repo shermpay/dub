@@ -4,7 +4,6 @@
 #include "src/formattable.h"
 #include "src/source_info.h"
 
-#include "absl/strings/str_format.h"
 #include "llvm/Support/FormatVariadic.h"
 
 #include <ostream>
@@ -21,11 +20,6 @@ public:
   S &format(S &stream) const {
     return stream
            << llvm::formatv("ExprInfo{{source={0}}}", *this->source).str();
-  }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const ExprInfo &info) noexcept {
-    absl::Format(&sink, "ExprInfo{source=%v}", *info.source);
   }
 
   friend std::ostream &operator<<(std::ostream &os, const ExprInfo info) {

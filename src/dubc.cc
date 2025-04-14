@@ -7,11 +7,10 @@
 #include "absl/flags/parse.h"
 #include "absl/flags/usage.h"
 #include "absl/status/status.h"
-#include "absl/strings/str_format.h"
 
-#include "src/reader.h"
 #include "src/compiler/compiler.h"
 #include "src/compiler/target_gen.h"
+#include "src/reader.h"
 
 namespace {
 
@@ -21,31 +20,30 @@ struct Options {
   std::string_view emit_llvm;
 };
 
-static absl::Status CompileFile(const Options& opts) {
+static absl::Status CompileFile(const Options &opts) {
   std::ifstream in(std::string(opts.input));
 
   if (!in) {
-	return absl::InvalidArgumentError(
-		absl::StrFormat("failed to open file: %s", opts.input));
+    return absl::InvalidArgumentError(
+        absl::StrFormat("failed to open file: %s", opts.input));
   }
 
   dub::Reader reader(in);
   reader.EnableLocation(dub::SourceReader(std::string(opts.input)));
   auto forms = reader.ReadAll();
-  
+
   if (!forms.ok()) {
     return forms.status();
   }
 
   auto compiler = dub::Compiler::MakeDefaultAot(std::cout);
   if (!compiler.ok()) {
-	return compiler.status();
+    return compiler.status();
   }
   return compiler.value().CompileModule(forms.value());
 }
 
-}  // namespace
-
+} // namespace
 
 ABSL_FLAG(std::string, output, "", "output binary file name");
 ABSL_FLAG(std::string, emit_llvm, "", "output LLVM IR file name");

@@ -45,13 +45,13 @@ template <> struct format_provider<dub::exprs::ExprBase<>> {
 //   static void format(const T &, raw_ostream &stream, StringRef style);
 // };
 
-template <> struct format_provider<dub::compiler::Constant> {
-  static void format(const dub::compiler::Constant &, raw_ostream &stream,
-                     StringRef style);
-};
-
 template <> struct format_provider<dub::Fn> {
   static void format(const dub::Fn &fn, raw_ostream &stream, StringRef style);
+};
+
+template <> struct format_provider<dub::Call> {
+  static void format(const dub::Call &call, raw_ostream &stream,
+                     StringRef style);
 };
 
 template <> struct format_provider<dub::Array> {

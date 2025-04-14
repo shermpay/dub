@@ -1,8 +1,10 @@
 #include "src/form.h"
 
-#include <ostream>
+#include "src/form_format.h" // IWYU pragma: keep
 
-#include "absl/strings/str_format.h"
+#include "llvm/Support/FormatVariadic.h"
+
+#include <ostream>
 
 namespace dub {
 
@@ -13,14 +15,14 @@ List::List(MutableList &mut_list)
       head_idx_(0) {}
 
 std::ostream &operator<<(std::ostream &os, const Form &form) {
-  os << absl::StreamFormat("%v", form);
+  os << llvm::formatv("{0}", form).str();
   return os;
 }
 
 namespace form {
 
 template <> std::ostream &operator<<(std::ostream &os, const List<Form> &list) {
-  os << absl::StreamFormat("%v", list);
+  os << llvm::formatv("{0}", list).str();
   return os;
 }
 

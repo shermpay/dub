@@ -3,8 +3,6 @@
 
 #include "src/symbol.h"
 
-#include "absl/strings/str_format.h"
-
 #include <cstdint>
 #include <memory>
 #include <ostream>
@@ -23,9 +21,6 @@ struct Nil {
   bool operator==(const Nil &_) const { return true; }
 
   bool operator!=(const Nil &_) const { return false; }
-  template <typename Sink> friend void AbslStringify(Sink &sink, const Nil &_) {
-    sink.Append("nil");
-  }
 };
 
 class MutableList;
@@ -101,26 +96,6 @@ private:
       : values_(values), head_idx_(head_idx) {}
 };
 
-template <typename Sink> class Format {
-public:
-  Format(Sink &sink) : sink_(sink) {}
-  void operator()(bool x) { absl::Format(&sink_, "%v", x); }
-
-  void operator()(std::int64_t x) { absl::Format(&sink_, "%lld", x); }
-
-  void operator()(double x) { absl::Format(&sink_, "%f", x); }
-
-  void operator()(std::string x) { sink_.Append(x); }
-
-  void operator()(const auto &x) {
-    AbslStringify(sink_, x);
-    // absl::Format(&sink_, "%v", x);
-  }
-
-private:
-  Sink &sink_;
-};
-
 } // namespace form
 
 struct SourceInfo;
@@ -170,26 +145,7 @@ struct Form {
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85282
 template <> const Symbol &Form::get<const Symbol &>() const;
 
-template <typename Sink> void AbslStringify(Sink &sink, const Form &form) {
-  form.Match(form::Format<Sink>(sink));
-}
-
 using List = form::List<Form>;
-
-template <typename Sink> void AbslStringify(Sink &sink, const List &list) {
-  sink.Append("(");
-  bool first = true;
-  for (const auto &form : list) {
-    if (first) {
-      first = false;
-    } else {
-      sink.Append(" ");
-    }
-    // TODO: Use AbslStringify
-    absl::Format(&sink, "%v", form);
-  }
-  sink.Append(")");
-}
 
 namespace form {
 using ListContainer = std::vector<Form>;
@@ -209,20 +165,6 @@ private:
 Form NilForm();
 
 using Vector = Form::Vector;
-
-template <typename Sink> void AbslStringify(Sink &sink, const Vector &vec) {
-  sink.Append("[");
-  bool first = true;
-  for (const auto &form : vec) {
-    if (first) {
-      first = false;
-    } else {
-      sink.Append(" ");
-    }
-    absl::Format(&sink, "%v", form);
-  }
-  sink.Append("]");
-}
 
 } // namespace dub
 

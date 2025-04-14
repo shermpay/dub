@@ -83,12 +83,6 @@ void format_provider<dub::exprs::ExprBase<>>::format(
   stream << ')';
 }
 
-void format_provider<dub::compiler::Constant>::format(
-    const dub::compiler::Constant &cst, raw_ostream &stream, StringRef style) {
-  (void)style;
-  stream << dub::compiler::Constant::LiteralToString(cst.literal_);
-}
-
 void format_provider<dub::VarDef>::format(const dub::VarDef &expr,
                                           raw_ostream &stream,
                                           StringRef style) {
@@ -121,6 +115,16 @@ void format_provider<dub::Fn>::format(const dub::Fn &fn, raw_ostream &stream,
   stream << ']';
   for (const auto &expr : fn.body()) {
     stream << formatv(" {0}", expr);
+  }
+  stream << ')';
+}
+
+void format_provider<dub::Call>::format(const dub::Call &call,
+                                        raw_ostream &stream, StringRef style) {
+  (void)style;
+  stream << llvm::formatv("({0}", call.target());
+  for (auto &arg : call.args()) {
+    stream << llvm::formatv(" {0}", arg);
   }
   stream << ')';
 }
@@ -211,3 +215,10 @@ void format_provider<dub::Expression>::format(const dub::Expression &expr,
   // expr.kind_);
 }
 } // namespace llvm
+
+namespace dub {
+std::ostream &operator<<(std::ostream &os, const TypeDef &type) {
+  os << llvm::formatv("{0}", type).str();
+  return os;
+}
+} // namespace dub

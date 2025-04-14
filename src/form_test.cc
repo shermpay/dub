@@ -5,7 +5,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "absl/strings/str_format.h"
 #include "llvm/Support/FormatVariadic.h"
 
 #include "src/form_format.h"

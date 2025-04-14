@@ -1,4 +1,4 @@
-#include "semantic.h"
+#include "src/compiler/semantic.h"
 
 #include <iostream>
 #include <memory>
@@ -6,7 +6,7 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_format.h"
+#include "llvm/Support/FormatVariadic.h"
 
 #include "src/compiler/constant.h"
 #include "src/compiler/expression.h"
@@ -49,7 +49,7 @@ struct MakeType final {
     auto type = typer_.info().LookupType(*name);
     if (!type.has_value()) {
       return absl::NotFoundError(
-          absl::StrFormat("type name '%v' is undefined", name));
+          llvm::formatv("type name '{0}' is undefined", name).str());
     }
     return type.value();
   }
@@ -58,7 +58,8 @@ struct MakeType final {
     auto ctor = typer_.info().LookupConstructor(expr.name());
     if (!ctor.has_value())
       return absl::NotFoundError(
-          absl::StrFormat("type constructor '%v' is undefined", expr.name()));
+          llvm::formatv("type constructor '{0}' is undefined", expr.name())
+              .str());
     std::vector<Type> type_args;
     for (const auto &type_expr : expr.types()) {
       auto type_arg = type_expr.Match(*this);

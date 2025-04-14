@@ -1,9 +1,9 @@
 #include "llvm_gen.h"
 
 #include <iostream>
+#include <llvm/Support/Error.h>
 #include <optional>
 
-#include "absl/status/statusor.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/Constants.h"
@@ -12,6 +12,8 @@
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Type.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FormatVariadic.h"
 
 #include "src/compiler/expression.h"
 #include "src/compiler/type.h"
@@ -109,7 +111,7 @@ std::optional<llvm::AllocaInst *> LlvmGen::LookupLocal(const Symbol &name) {
   return iter->second;
 }
 
-absl::StatusOr<llvm::Value *>
+llvm::Expected<llvm::Value *>
 LlvmGen::BuiltinFuncGen(BuiltinInfo info, const Symbol &name,
                         const llvm::ArrayRef<Expression> args) {
   (void)name;
@@ -117,19 +119,17 @@ LlvmGen::BuiltinFuncGen(BuiltinInfo info, const Symbol &name,
   switch (info.kind()) {
   case Builtin::kIntAdd: {
     auto left = GenerateExpression(args[0]);
-    std::cout << "BuiltinFuncGen: left=" << left.status() << std::endl;
-    if (!left.ok()) {
-      return left.status();
+    if (!left) {
+      return left.takeError();
     }
     auto right = GenerateExpression(args[1]);
-    std::cout << "BuiltinFuncGen: right=" << right.status() << std::endl;
-    if (!right.ok()) {
-      return right.status();
+    if (!right) {
+      return right.takeError();
     }
-    return builder_->CreateNSWAdd(left.value(), right.value());
+    return builder_->CreateNSWAdd(*left, *right);
   }
   case Builtin::kFloatAdd:
-    return absl::UnimplementedError("Codegen for float add");
+    llvm_unreachable("Codegen for float add");
   }
   return nullptr;
 }
@@ -140,21 +140,21 @@ struct TypeDefGen final {
 
   TypeDefGen(LlvmGen &gen, const TypeDef &expr) : llgen(gen), type_def(expr) {}
 
-  absl::StatusOr<llvm::Type *> Generate() {
+  llvm::Expected<llvm::Type *> Generate() {
     return type_def.type().Match(*this);
   }
 
-  absl::StatusOr<llvm::Type *> operator()(const auto &type) {
+  llvm::Expected<llvm::Type *> operator()(const auto &type) {
     (void)type;
     return nullptr;
   }
-  absl::StatusOr<llvm::Type *> operator()(const Type::Tuple &tuple) {
+  llvm::Expected<llvm::Type *> operator()(const Type::Tuple &tuple) {
     (void)tuple;
-    return absl::UnimplementedError("typedef tuple");
+    llvm_unreachable("typedef tuple");
   }
-  absl::StatusOr<llvm::Type *> operator()(const Type::Struct &st) {
+  llvm::Expected<llvm::Type *> operator()(const Type::Struct &st) {
     (void)st;
-    return absl::UnimplementedError("typedef struct");
+    llvm_unreachable("typedef struct");
   }
 };
 
@@ -164,31 +164,31 @@ struct ExprGen final {
   const Expression &the_expr;
   ExprGen(LlvmGen &gen, const Expression &expr) : llgen(gen), the_expr(expr) {}
 
-  absl::StatusOr<llvm::Value *> operator()(const Constant &x) const {
+  llvm::Expected<llvm::Value *> operator()(const Constant &x) const {
     return x.Match(*this);
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const Nil &x) const {
+  llvm::Expected<llvm::Value *> operator()(const Nil &x) const {
     (void)x;
     return llvm::ConstantPointerNull::get(
         llvm::PointerType::get(*llgen.context_, /*AddressSpace=*/0));
   }
 
-  absl::StatusOr<llvm::Value *> operator()(bool x) const {
+  llvm::Expected<llvm::Value *> operator()(bool x) const {
     return llvm::ConstantInt::getSigned(llvm::Type::getInt1Ty(*llgen.context_),
                                         x);
   }
 
-  absl::StatusOr<llvm::Value *> operator()(std::int64_t x) const {
+  llvm::Expected<llvm::Value *> operator()(std::int64_t x) const {
     return llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(*llgen.context_),
                                         x);
   }
 
-  absl::StatusOr<llvm::Value *> operator()(double x) const {
+  llvm::Expected<llvm::Value *> operator()(double x) const {
     return llvm::ConstantFP::get(llvm::Type::getDoubleTy(*llgen.context_), x);
   }
 
-  absl::StatusOr<llvm::Value *> operator()(std::string x) const {
+  llvm::Expected<llvm::Value *> operator()(std::string x) const {
     auto value = llvm::ConstantDataArray::getString(*llgen.context_, x);
     auto global = new llvm::GlobalVariable(
         value->getType(),
@@ -197,75 +197,78 @@ struct ExprGen final {
     return global;
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const Symbol *x) const {
+  llvm::Expected<llvm::Value *> operator()(const Symbol *x) const {
     auto alloca_inst = llgen.LookupLocal(*x);
     // TODO: Semantic analysis to check
     if (!alloca_inst.has_value()) {
-      return absl::FailedPreconditionError(
-          absl::StrFormat("symbol lookup failed: var '%v' is not defined", x));
+      return llvm::createStringError(
+          llvm::formatv("symbol lookup failed: var '{0}' is not defined", x)
+              .str());
     }
     return llgen.builder_->CreateLoad(alloca_inst.value()->getAllocatedType(),
                                       alloca_inst.value(), x->value());
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const MemberAccess &x) const {
+  llvm::Expected<llvm::Value *> operator()(const MemberAccess &x) const {
     (void)x;
-    return absl::UnimplementedError("member access is not implemented");
+    llvm_unreachable("member access is not implemented");
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const Call &expr) const {
+  llvm::Expected<llvm::Value *> operator()(const Call &expr) const {
     auto &target = expr.target();
     std::cout << "Codegen call: " << target << std::endl;
 
     if (!target.Is<const Symbol *>()) {
-      return absl::InvalidArgumentError(
+      return llvm::createStringError(
           "call expression requires callee to be a symbol");
     }
 
     auto target_symbol = target.Get<const Symbol *>();
     if (target_symbol == nullptr) {
-      return absl::FailedPreconditionError("call target is null");
+      return llvm::createStringError("call target is null");
     }
 
     if (auto pair = llgen.typed_module_->FindBuiltinInfo(the_expr);
         pair != llgen.typed_module_->BuiltinInfoEnd()) {
       auto builtin =
           llgen.BuiltinFuncGen(pair->second, *target_symbol, expr.args());
-      if (!builtin.ok()) {
-        return builtin.status();
+      if (!builtin) {
+        return builtin.takeError();
       }
-      return builtin.value();
+      return *builtin;
     }
 
     llvm::Function *callee =
         llgen.ll_module_->getFunction(target_symbol->value());
     if (!callee) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("cannot find function: %v", target_symbol));
+      return llvm::createStringError(
+          llvm::formatv("cannot find function: {0}", target_symbol).str());
     }
 
     if (callee->arg_size() != expr.args().size()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "invalid number of arguments: %d, %v expects %d args ",
-          callee->arg_size(), target_symbol, expr.args().size()));
+      return llvm::createStringError(
+          llvm::formatv(
+              "invalid number of arguments: {0}, {1} expects {2} args ",
+              callee->arg_size(), target_symbol, expr.args().size())
+              .str());
     }
     std::vector<llvm::Value *> args;
     for (const auto &arg_expr : expr.args()) {
       auto arg = arg_expr.Match(*this);
-      if (!arg.ok()) {
+      if (!arg) {
         return arg;
       }
-      args.push_back(arg.value());
+      args.push_back(*arg);
     }
     std::cout << "Creating Call instruction" << std::endl;
     return llgen.builder_->CreateCall(
         callee, args, callee->getReturnType()->isVoidTy() ? "" : "calltmp");
   }
-  absl::StatusOr<llvm::Value *> operator()(const If &expr) const {
+  llvm::Expected<llvm::Value *> operator()(const If &expr) const {
     (void)expr;
-    return absl::UnimplementedError("Codegen If");
+    llvm_unreachable("Codegen If");
   }
-  absl::StatusOr<llvm::Value *> operator()(const Fn &fn) const {
+  llvm::Expected<llvm::Value *> operator()(const Fn &fn) const {
     std::cout << "Codegen Fn" << std::endl;
     llvm::Function *ll_func = llgen.ll_module_->getFunction(fn.name()->value());
     auto bb = llvm::BasicBlock::Create(*llgen.context_, "entry", ll_func);
@@ -273,34 +276,34 @@ struct ExprGen final {
     std::vector<llvm::Value *> ll_exprs;
     for (const auto &expr : fn.body()) {
       auto ll_value = llgen.GenerateExpression(expr);
-      if (!ll_value.ok()) {
+      if (!ll_value) {
         // TODO: return error
       }
-      if (ll_value.value() != nullptr) {
-        ll_exprs.push_back(ll_value.value());
+      if (*ll_value != nullptr) {
+        ll_exprs.push_back(*ll_value);
       }
     }
 
     return ll_func;
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const Return &expr) const {
+  llvm::Expected<llvm::Value *> operator()(const Return &expr) const {
     // TODO: Handle void.
     // TODO: Handle empty return.
     if (expr.HasValue()) {
       auto value = llgen.GenerateExpression(expr.Value());
-      if (!value.ok()) {
-        return value.status();
+      if (!value) {
+        return value;
       }
-      return llgen.builder_->CreateRet(value.value());
+      return llgen.builder_->CreateRet(*value);
     }
-    return absl::UnimplementedError("Codegen Return no value");
+    llvm_unreachable("Codegen Return no value");
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const VarDef &expr) const {
+  llvm::Expected<llvm::Value *> operator()(const VarDef &expr) const {
     auto type = llgen.typed_module_->TypeInfoRef().LookupName(expr.name());
     if (!type.has_value()) {
-      return absl::FailedPreconditionError(
+      return llvm::createStringError(
           "type checker did not assign valid type to var name");
     }
     auto lltype = llgen.GenerateType(type.value());
@@ -309,20 +312,22 @@ struct ExprGen final {
     return inst;
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const Set &expr) const {
+  llvm::Expected<llvm::Value *> operator()(const Set &expr) const {
     auto place = std::visit(
         AssignableVisitor{
-            [this, &expr](const Symbol *name) -> absl::StatusOr<llvm::Value *> {
+            [this, &expr](const Symbol *name) -> llvm::Expected<llvm::Value *> {
               auto alloca_inst = llgen.LookupLocal(*name);
               if (!alloca_inst.has_value()) {
-                return absl::FailedPreconditionError(absl::StrFormat(
-                    "%v failed: var '%v' is not defined", expr, expr.place()));
+                return llvm::createStringError(
+                    llvm::formatv("{0} failed: var '{1}' is not defined", expr,
+                                  expr.place())
+                        .str());
               }
 
               return alloca_inst.value();
             },
             [this, &expr](
-                const MemberAccess &access) -> absl::StatusOr<llvm::Value *> {
+                const MemberAccess &access) -> llvm::Expected<llvm::Value *> {
               // %2 = alloca %struct.Point, align 4
               // %3 = getelementptr inbounds %struct.Point, ptr %2, i32 0, i32 0
               // Value * 	CreateStructGEP (Type *Ty, Value *Ptr, unsigned
@@ -339,8 +344,10 @@ struct ExprGen final {
               auto alloca_inst = llgen.LookupLocal(
                   *access.struct_expr().Get<const Symbol *>());
               if (!alloca_inst.has_value()) {
-                return absl::FailedPreconditionError(absl::StrFormat(
-                    "%v failed: var '%v' is not defined", expr, expr.place()));
+                return llvm::createStringError(
+                    llvm::formatv("{0} failed: var '{1}' is not defined", expr,
+                                  expr.place())
+                        .str());
               }
               return this->llgen.builder_->CreateStructGEP(
                   lltype, alloca_inst.value(), 0);
@@ -348,28 +355,28 @@ struct ExprGen final {
         },
         expr.place());
     auto llvalue = llgen.GenerateExpression(expr.value());
-    if (!llvalue.ok()) {
-      return llvalue.status();
+    if (!llvalue) {
+      return llvalue;
     }
 
-    return llgen.builder_->CreateStore(llvalue.value(), place.value());
+    return llgen.builder_->CreateStore(*llvalue, *place);
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const ModuleDecl &expr) const {
+  llvm::Expected<llvm::Value *> operator()(const ModuleDecl &expr) const {
     (void)expr;
     return nullptr;
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const TypeDef &def) const {
+  llvm::Expected<llvm::Value *> operator()(const TypeDef &def) const {
     TypeDefGen gen(llgen, def);
     auto type = gen.Generate();
-    if (!type.ok()) {
-      return type.status();
+    if (!type) {
+      return type.takeError();
     }
     return nullptr;
   }
 
-  absl::StatusOr<llvm::Value *> operator()(const NameDecl &def) const {
+  llvm::Expected<llvm::Value *> operator()(const NameDecl &def) const {
     auto type_opt = llgen.typed_module_->TypeInfoRef().LookupName(def.name());
     if (type_opt.has_value()) {
       auto &type = type_opt.value();
@@ -389,9 +396,9 @@ struct ExprGen final {
     }
     return nullptr;
   }
-  absl::StatusOr<llvm::Value *> operator()(const Array &expr) const {
+  llvm::Expected<llvm::Value *> operator()(const Array &expr) const {
     (void)expr;
-    return absl::UnimplementedError("Codegen Array");
+    llvm_unreachable("Codegen Array");
   }
 };
 
@@ -424,7 +431,7 @@ void LlvmGen::GenerateModule(const Module &mod) {
   // }
 }
 
-absl::StatusOr<llvm::Value *>
+llvm::Expected<llvm::Value *>
 LlvmGen::GenerateExpression(const Expression &expr) {
   return expr.Match(ExprGen(*this, expr));
 }

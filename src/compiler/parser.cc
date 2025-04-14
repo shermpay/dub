@@ -7,14 +7,14 @@
 #include "src/compiler/module.h"
 #include "src/compiler/result.h"
 #include "src/form.h"
-#include "src/form_format.h"
+#include "src/form_format.h" // IWYU pragma: keep
 #include "src/symbol.h"
 
 #include "absl/status/statusor.h"
-#include "absl/strings/str_format.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/FormatVariadic.h"
 
 #include <algorithm>
-#include <llvm/Support/Error.h>
 #include <variant>
 
 namespace dub::compiler {
@@ -35,8 +35,9 @@ absl::StatusOr<Module> Parser::ParseModule(const List &forms) const {
     if (expr.HasError()) {
       // TODO: We can continue here until the end and report all errors.
       return absl::InvalidArgumentError(
-          absl::StrFormat("failed to parse expression: %v, error: %v", form,
-                          expr.FormatErrors()));
+          llvm::formatv("failed to parse expression: {0}, error: {1}", form,
+                        expr.FormatErrors())
+              .str());
     }
   }
 
@@ -48,7 +49,7 @@ absl::StatusOr<ModuleDecl> Parser::ParseModuleHeader(const Form &form,
   auto mod_decl = ParseModuleDecl(form.get<List>(), modul);
   if (mod_decl.HasError()) {
     return absl::InvalidArgumentError(
-        absl::StrFormat("cannot parse Module header: %v", form));
+        llvm::formatv("cannot parse Module header: {0}", form).str());
   }
   return mod_decl.Value();
 }
@@ -58,8 +59,10 @@ absl::StatusOr<Expression *> Parser::ParseExpression(const Form &form,
   auto expr = ParseExpr(form, modul);
   // std::cout << "ParseExpression:" << expr << std::endl;
   if (expr.HasError()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "failed to parse form: %v, error: %v", form, expr.FormatErrors()));
+    return absl::InvalidArgumentError(
+        llvm::formatv("failed to parse form: {0}, error: {1}", form,
+                      expr.FormatErrors())
+            .str());
   }
   // Expressions are assigned their ExprInfo here.
   return &modul->AddExpression(std::move(expr.Value()));

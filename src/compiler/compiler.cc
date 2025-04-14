@@ -4,14 +4,14 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <llvm/Support/raw_ostream.h>
 #include <system_error>
 
 #include "absl/status/status.h"
-#include "absl/strings/str_format.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Support/CodeGen.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Support/raw_ostream.h"
 
 #include "src/compiler/expression.h"
 #include "src/compiler/module.h"
@@ -19,8 +19,14 @@
 
 namespace dub {
 
+static absl::Status FromLlvmError(llvm::Error &&err) {
+  std::string s;
+  llvm::raw_string_ostream ss(s);
+  ss << err;
+  return absl::InvalidArgumentError(s);
+}
 
-absl::Status Compiler::CompileModule(const List& forms) {
+absl::Status Compiler::CompileModule(const List &forms) {
   CompileContext ctx;
   // auto mod = parser_.ParseModule(forms);
 
@@ -42,7 +48,7 @@ absl::Status Compiler::CompileModule(const List& forms) {
   // auto codegen = compiler::LlvmGen(typed_mod.get());
   // codegen.GenerateModule(mod.value());
 
-  for (const auto& form : forms) {
+  for (const auto &form : forms) {
     auto status = CompileExpression(form, &ctx);
     if (!status.ok()) {
       return status;
@@ -55,23 +61,22 @@ absl::Status Compiler::CompileModule(const List& forms) {
   std::error_code err;
   llvm::raw_fd_ostream bc_ostream(bc_file, err);
   if (err) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat(
-            "failed to open file: %s to write LLVM bitcode; got error: %s",
-            bc_file, err.message()));
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "failed to open file: %s to write LLVM bitcode; got error: %s", bc_file,
+        err.message()));
   }
   llvm::WriteBitcodeToFile(ctx.LlvmModule(), bc_ostream);
 
   auto asm_file = absl::StrFormat("out/%s.o", mod_name);
   llvm::raw_fd_ostream asm_ostream(asm_file, err);
   if (err) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat(
-            "failed to open file: %s to write LLVM bitcode; got error: %s",
-            asm_file, err.message()));
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "failed to open file: %s to write LLVM bitcode; got error: %s",
+        asm_file, err.message()));
   }
   target_gen_->ConfigureModule(ctx.ll_module());
-  return target_gen_->GenerateModule(ctx.ll_module(), llvm::CodeGenFileType::ObjectFile, &asm_ostream);
+  return target_gen_->GenerateModule(
+      ctx.ll_module(), llvm::CodeGenFileType::ObjectFile, &asm_ostream);
 }
 
 // TODO: Figure out how to share scoped type info between Typer and LlvmGen
@@ -116,19 +121,19 @@ absl::Status Compiler::CompileExpression(const Form &form,
                                    ctx->ll_context(), ctx->ll_module());
   auto code = codegen.GenerateExpression(expr);
 
-  if (!code.ok()) {
-    return code.status();
-  } else if (code.value() == nullptr) {
+  if (!code) {
+    return FromLlvmError(code.takeError());
+  } else if (*code == nullptr) {
     logging() << "[CC] NULL" << std::endl;
     // Expression does not generate any code.
     return absl::OkStatus();
   }
   logging() << "[CC] ";
   llvm::raw_os_ostream ll_ostream(logging());
-  code.value()->print(ll_ostream, /*IsForDebug=*/true);
+  code.get()->print(ll_ostream, /*IsForDebug=*/true);
   logging() << std::endl;
 
   return absl::OkStatus();
 }
 
-}  // namespace dub
+} // namespace dub

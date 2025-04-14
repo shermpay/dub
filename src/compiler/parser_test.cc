@@ -3,11 +3,12 @@
 #include <iostream>
 #include <memory>
 
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
-#include "absl/strings/str_format.h"
+#include "llvm/Support/FormatVariadic.h"
 
+#include "src/compiler/expr_format.h"
 #include "src/compiler/expression.h"
 #include "src/compiler/module.h"
 #include "src/form.h"
@@ -17,16 +18,17 @@
 using dub::Call;
 using dub::Expression;
 using dub::Form;
+using dub::Module;
+using dub::Symbol;
+using dub::compiler::Parser;
+using dub::dsl::List;
+using dub::dsl::Symbol;
 using dub::dsl::expr::If;
 using dub::dsl::expr::Literal;
 using dub::dsl::expr::Name;
-using dub::dsl::List;
-using dub::dsl::Symbol;
-using dub::compiler::Parser;
-using dub::Module;
-using dub::Symbol;
 
-// MATCHER_P(IsOkAndMatch, expr, absl::StrFormat("parsed result is OK and form is %v", expr)) {
+// MATCHER_P(IsOkAndMatch, expr, absl::StrFormat("parsed result is OK and form
+// is %v", expr)) {
 //   if (!arg.IsOk()) {
 //     *result_listener << arg.Error();
 //     return false;
@@ -35,7 +37,9 @@ using dub::Symbol;
 //   return arg.Value() == expr;
 // }
 
-MATCHER_P(IsOkAndMatch, expr, absl::StrFormat("parsed result is OK and form is %v", expr)) {
+MATCHER_P(
+    IsOkAndMatch, expr,
+    llvm::formatv("parsed result is OK and form is {0}", expr.get()).str()) {
   if (!arg.ok()) {
     *result_listener << arg.status();
     return false;

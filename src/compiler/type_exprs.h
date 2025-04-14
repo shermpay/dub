@@ -5,6 +5,7 @@
 #include "src/symbol.h"
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/FormatVariadic.h"
 
 namespace dub {
 
@@ -14,20 +15,6 @@ namespace dub {
 ///  - Vector: for type tuples [i64 i32]. eg. `(Fn [i64 bool] i32)`
 class TypeExpr final {
 public:
-  // struct NameType final {
-  // 	const Symbol* name;
-  // 	TypeExpr type;
-  // 	bool operator==(const NameType& rhs) const {
-  // 	  return name == rhs.name && type == rhs.type;
-  // 	}
-  // 	bool operator!=(const NameType& rhs) const {
-  // 	  return !(*this == rhs);
-  // 	}
-  // 	template <typename Sink>
-  // 	friend void AbslStringify(Sink& sink, const NameType& pair) {
-  // 	  absl::Format(&sink, "(%v %v)", *pair.name, pair.type);
-  // 	}
-  // };
   using NameType = std::pair<const Symbol *, TypeExpr>;
 
   class Construct final {
@@ -40,15 +27,6 @@ public:
     }
 
     bool operator!=(const Construct &rhs) const { return !(*this == rhs); }
-
-    template <typename Sink>
-    friend void AbslStringify(Sink &sink, const Construct &type) {
-      absl::Format(&sink, "(%v", type.name_);
-      for (const auto &type : type.types_) {
-        absl::Format(&sink, " %v", type);
-      }
-      sink.Append(")");
-    }
 
     const Symbol &name() const { return *name_; }
 
@@ -66,20 +44,6 @@ public:
     bool operator==(const Tuple &rhs) const { return this->types == rhs.types; }
 
     bool operator!=(const Tuple &rhs) const { return !(*this == rhs); }
-    template <typename Sink>
-    friend void AbslStringify(Sink &sink, const Tuple &type) {
-      sink.Append("[");
-      bool first = true;
-      for (const auto &type : type.types) {
-        if (first) {
-          first = false;
-          absl::Format(&sink, "%v", type);
-        } else {
-          absl::Format(&sink, " %v", type);
-        }
-      }
-      sink.Append("]");
-    }
   };
   class Struct final {
   public:
@@ -105,12 +69,6 @@ public:
   bool operator==(const TypeExpr &rhs) const;
   bool operator!=(const TypeExpr &rhs) const { return !(*this == rhs); }
 
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const TypeExpr &type) {
-    std::visit([&sink](const auto &kind) { AbslStringify(sink, kind); },
-               type.kind_);
-  }
-
   template <typename Matcher> constexpr auto Match(Matcher &&m) const {
     return std::visit(m, kind_);
   }
@@ -119,26 +77,6 @@ private:
   std::variant<compiler::Constant, const Symbol *, Construct, Tuple, Struct>
       kind_;
 };
-
-template <typename Sink>
-void AbslStringify(Sink &sink, const TypeExpr::NameType &pair) {
-  absl::Format(&sink, "(%v %v)", *pair.first, pair.second);
-}
-
-template <typename Sink>
-void AbslStringify(Sink &sink, const TypeExpr::Struct &st) {
-  sink.Append("(struct [");
-  bool first = true;
-  for (const auto &field_def : st.fields()) {
-    if (first) {
-      first = false;
-    } else {
-      sink.Append(" ");
-    }
-    AbslStringify(sink, field_def);
-  }
-  sink.Append("])");
-}
 
 TypeExpr TypeUnit();
 
@@ -154,15 +92,7 @@ public:
 
   bool operator!=(const TypeDef &rhs) const { return !(*this == rhs); }
 
-  friend std::ostream &operator<<(std::ostream &os, const TypeDef &type) {
-    os << absl::StreamFormat("%v", type);
-    return os;
-  }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const TypeDef &type) {
-    absl::Format(&sink, "(type %v %v)", type.name_, type.type_);
-  }
+  friend std::ostream &operator<<(std::ostream &os, const TypeDef &type);
 
   const Symbol &name() const { return *name_; }
 

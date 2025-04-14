@@ -1,5 +1,4 @@
 #include "src/lib.h"
-#include "absl/strings/str_format.h"
 
 namespace lib {
 

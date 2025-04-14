@@ -62,7 +62,6 @@ cc_library(
     hdrs = ["source_info.h"],
     deps = [
         ":form",
-        "@absl//absl/strings:str_format",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -79,7 +78,6 @@ cc_library(
     ],
     deps = [
         ":symbol",
-        "@absl//absl/strings:str_format",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -89,7 +87,6 @@ cc_test(
     srcs = ["form_test.cc"],
     deps = [
         ":form",
-        "@absl//absl/strings:str_format",
         "@googletest//:gtest_main",
         "@googletest//:gtest",
         "@llvm-project//llvm:Support",
@@ -101,7 +98,6 @@ cc_library(
     srcs = ["symbol.cc"],
     hdrs = ["symbol.h"],
     deps = [
-        "@absl//absl/strings:str_format",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -133,7 +129,6 @@ cc_library(
     srcs = ["lib.cc"],
     hdrs = ["lib.h"],
     deps = [
-        "@absl//absl/strings:str_format",
     ],
 )
 
@@ -142,6 +137,5 @@ cc_binary(
     srcs = ["a.cc"],
     deps = [
         ":lib",
-        "@absl//absl/strings:str_format",
     ],
 )

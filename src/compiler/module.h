@@ -5,8 +5,6 @@
 #include <ostream>
 #include <vector>
 
-#include "absl/strings/str_format.h"
-
 #include "src/compiler/expr_info.h"
 #include "src/compiler/expression.h"
 
@@ -66,18 +64,7 @@ public:
   }
 
 private:
-  friend std::ostream &operator<<(std::ostream &os, const Module &mod) {
-    os << absl::StreamFormat("%v", mod);
-    return os;
-  }
-
-  template <typename Sink>
-  friend void AbslStringify(Sink &sink, const Module &mod) {
-    absl::Format(&sink, "%v\n", *mod.header_);
-    for (const auto &expr : mod.contents_) {
-      absl::Format(&sink, "%v\n", expr);
-    }
-  }
+  friend std::ostream &operator<<(std::ostream &os, const Module &mod);
 
   std::unique_ptr<ModuleDecl> header_;
   std::vector<Expression> contents_;
@@ -85,5 +72,12 @@ private:
 };
 
 } // namespace dub
+
+namespace llvm {
+template <> struct format_provider<dub::Module> {
+  static void format(const dub::Module &mod, raw_ostream &stream,
+                     StringRef style);
+};
+} // namespace llvm
 
 #endif /* DUB_COMPILER_MODULE_H_ */

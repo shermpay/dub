@@ -5,8 +5,6 @@
 
 #include "llvm/Support/FormatVariadic.h"
 
-#include <iostream>
-
 namespace dub {
 
 // compiler::ExprInfo& Module::NewExprInfo(compiler::ExprInfo info) {

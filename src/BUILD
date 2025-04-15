@@ -15,7 +15,6 @@ cc_binary(
         "@absl//absl/flags:flag",
         "@absl//absl/flags:parse",
         "@absl//absl/flags:usage",
-        "@absl//absl/status",
     ],
 )
 
@@ -39,8 +38,6 @@ cc_library(
         ":form",
         ":source_info",
         ":symbol",
-        "@absl//absl/status",
-        "@absl//absl/status:statusor",
     ],
 )
 
@@ -53,6 +50,8 @@ cc_test(
         ":symbol",
         "@googletest//:gtest_main",
         "@googletest//:gtest",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//llvm:TestingSupport",
     ],
 )
 

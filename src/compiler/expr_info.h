@@ -5,6 +5,7 @@
 #include "src/source_info.h"
 
 #include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/FormatVariadicDetails.h"
 
 #include <ostream>
 
@@ -15,15 +16,9 @@ class ExprInfo final {
 public:
   ExprInfo(SourceInfo &source) : source(&source) {}
 
-  template <typename S>
-    requires dub::OutputableStream<S, ExprInfo>
-  S &format(S &stream) const {
+  template <typename S> S &format(S &stream) const {
     return stream
            << llvm::formatv("ExprInfo{{source={0}}}", *this->source).str();
-  }
-
-  friend std::ostream &operator<<(std::ostream &os, const ExprInfo info) {
-    return info.format(os);
   }
 
   SourceInfo *source;

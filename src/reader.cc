@@ -4,14 +4,12 @@
 #include "src/source_info.h"
 #include "src/symbol.h"
 
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
+#include "llvm/Support/ErrorHandling.h"
 
 #include <cctype>
 #include <memory>
 #include <optional>
 #include <string>
-#include <thread>
 
 namespace dub {
 
@@ -40,7 +38,10 @@ void SourceReader::Enter() {
               .filename = name_,
               .line_start = line_,
               .column_start = column_,
+              .line_end = line_,
+              .column_end = column_,
           },
+      .line = "",
   };
   info_stack_.push_back(info);
 }
@@ -54,9 +55,9 @@ void SourceReader::Exit(Form &form) {
   form.info = infos_.back().get();
 }
 
-absl::StatusOr<std::optional<Form>> Reader::ReadForm() {
+llvm::Expected<std::optional<Form>> Reader::ReadForm() {
   if (stream_.fail() || stream_.bad()) {
-    return absl::FailedPreconditionError("stream is in fail/bad state");
+    llvm_unreachable("stream is in fail/bad state");
   }
 
   char c = Next();
@@ -69,7 +70,7 @@ absl::StatusOr<std::optional<Form>> Reader::ReadForm() {
 
   if (source_reader_)
     source_reader_->Enter();
-  absl::StatusOr<Form::Value> value;
+  llvm::Expected<Form::Value> value = dub::Nil();
   switch (state_) {
   case Reader::State::kEnd:
   case Reader::State::kListEnd:
@@ -88,27 +89,28 @@ absl::StatusOr<std::optional<Form>> Reader::ReadForm() {
     value = ReadLiteralOrSymbol(c);
     break;
   default:
-    return absl::InvalidArgumentError("invalid syntax");
+    return llvm::createStringError(std::errc::invalid_argument,
+                                   "invalid syntax");
   }
-  if (!value.ok()) {
-    return value.status();
+  if (!value) {
+    return value.takeError();
   }
-  auto f = Form(std::move(value.value()));
+  auto f = Form(std::move(*value));
   if (source_reader_)
     source_reader_->Exit(f);
   return f;
 }
 
-absl::StatusOr<List> Reader::ReadAll() {
+llvm::Expected<List> Reader::ReadAll() {
   MutableList mlist;
   do {
     auto f = ReadForm();
-    if (!f.ok()) {
-      return f.status();
+    if (!f) {
+      return f.takeError();
     }
-    if (!f.value().has_value())
+    if (!f->has_value())
       break;
-    mlist.Append(std::move(f.value().value()));
+    mlist.Append(std::move(f->value()));
   } while (!Done());
   return List(mlist);
 }
@@ -174,7 +176,7 @@ void Reader::ReadComment() {
     source_reader_->NewLine();
 }
 
-absl::StatusOr<std::string> Reader::ReadString() {
+llvm::Expected<std::string> Reader::ReadString() {
   char c = GetChar();
   std::string result;
 
@@ -183,7 +185,7 @@ absl::StatusOr<std::string> Reader::ReadString() {
       char escaped_c = GetChar();
       auto opt_c = EscapeChar(escaped_c);
       if (!opt_c.has_value()) {
-        return absl::InvalidArgumentError(
+        return llvm::createStringError(
             std::string("invalid escape sequence: \\") + escaped_c);
       }
       result.push_back(*opt_c);
@@ -195,7 +197,7 @@ absl::StatusOr<std::string> Reader::ReadString() {
   return result;
 }
 
-absl::StatusOr<Form::Value> Reader::ReadLiteralOrSymbol(char c) {
+llvm::Expected<Form::Value> Reader::ReadLiteralOrSymbol(char c) {
   std::int64_t num = 0;
   std::int64_t float_div = 0;
   enum states {
@@ -250,7 +252,7 @@ absl::StatusOr<Form::Value> Reader::ReadLiteralOrSymbol(char c) {
 
   switch (state) {
   case kUnknown:
-    return absl::InvalidArgumentError("failed to read");
+    return llvm::createStringError("failed to read");
   case kInteger:
     return num * multiplier;
   case kFloat:
@@ -266,20 +268,20 @@ absl::StatusOr<Form::Value> Reader::ReadLiteralOrSymbol(char c) {
     return &Symbol::Get(str);
   }
 
-  return absl::InvalidArgumentError("failed to read");
+  return llvm::createStringError("failed to read");
 }
 
-absl::StatusOr<List> Reader::ReadList() {
+llvm::Expected<List> Reader::ReadList() {
   MutableList forms;
 
   do {
     auto form = ReadForm();
-    if (!form.ok()) {
-      return form.status();
-    } else if (!form.value().has_value()) {
+    if (!form) {
+      return form.takeError();
+    } else if (!form->has_value()) {
       break;
     }
-    forms.Append(form.value().value());
+    forms.Append(form->value());
   } while (state_ != Reader::State::kEnd && state_ != Reader::State::kListEnd);
 
   // Advance to the next state
@@ -288,17 +290,17 @@ absl::StatusOr<List> Reader::ReadList() {
   return List(forms);
 }
 
-absl::StatusOr<Vector> Reader::ReadVector() {
+llvm::Expected<Vector> Reader::ReadVector() {
   Vector forms;
 
   do {
     auto form = ReadForm();
-    if (!form.ok()) {
-      return form.status();
-    } else if (!form.value().has_value()) {
+    if (!form) {
+      return form.takeError();
+    } else if (!form->has_value()) {
       break;
     }
-    forms.push_back(form.value().value());
+    forms.push_back(form->value());
   } while (state_ != Reader::State::kEnd &&
            state_ != Reader::State::kVectorEnd);
 

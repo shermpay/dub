@@ -1,10 +1,6 @@
 #ifndef DUB_COMPILER_SEMANTIC_H_
 #define DUB_COMPILER_SEMANTIC_H_
 
-#include <memory>
-#include <optional>
-#include <string_view>
-
 #include "src/compiler/constant.h"
 #include "src/compiler/expr_format.h"
 #include "src/compiler/expression.h"
@@ -12,7 +8,12 @@
 #include "src/compiler/type.h"
 #include "src/compiler/type_info.h"
 #include "src/compiler/typed_module.h"
+#include "src/errors.h"
 #include "src/symbol.h"
+
+#include <memory>
+#include <optional>
+#include <string_view>
 
 namespace dub::compiler {
 

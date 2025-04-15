@@ -2,31 +2,22 @@
 
 #include <cerrno>
 #include <cstring>
-#include <fstream>
-#include <iostream>
-#include <llvm/Support/raw_ostream.h>
 #include <system_error>
 
-#include "absl/status/status.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/Support/CodeGen.h"
-#include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include "src/compiler/expr_info.h"
 #include "src/compiler/expression.h"
 #include "src/compiler/module.h"
-#include "src/compiler/type_info.h"
+#include "src/formattable.h"
 
 namespace dub {
 
-static absl::Status FromLlvmError(llvm::Error &&err) {
-  std::string s;
-  llvm::raw_string_ostream ss(s);
-  ss << err;
-  return absl::InvalidArgumentError(s);
-}
-
-absl::Status Compiler::CompileModule(const List &forms) {
+llvm::Error Compiler::CompileModule(const List &forms) {
   CompileContext ctx;
   // auto mod = parser_.ParseModule(forms);
 
@@ -49,61 +40,66 @@ absl::Status Compiler::CompileModule(const List &forms) {
   // codegen.GenerateModule(mod.value());
 
   for (const auto &form : forms) {
-    auto status = CompileExpression(form, &ctx);
-    if (!status.ok()) {
-      return status;
+    auto err = CompileExpression(form, &ctx);
+    if (!err) {
+      return err;
     }
   }
 
   // TODO: Pass the file names in.
   auto mod_name = ctx.parsed_module()->Header().name->value();
-  auto bc_file = absl::StrFormat("out/%s.bc", mod_name);
+  auto bc_file = llvm::formatv("out/{0}.bc", mod_name).str();
   std::error_code err;
   llvm::raw_fd_ostream bc_ostream(bc_file, err);
   if (err) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "failed to open file: %s to write LLVM bitcode; got error: %s", bc_file,
-        err.message()));
+    return llvm::createStringError(
+        llvm::formatv(
+            "failed to open file: {0} to write LLVM bitcode; got error: {1}",
+            bc_file, err.message())
+            .str());
   }
   llvm::WriteBitcodeToFile(ctx.LlvmModule(), bc_ostream);
 
-  auto asm_file = absl::StrFormat("out/%s.o", mod_name);
+  auto asm_file = llvm::formatv("out/{0}.o", mod_name).str();
   llvm::raw_fd_ostream asm_ostream(asm_file, err);
   if (err) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "failed to open file: %s to write LLVM bitcode; got error: %s",
-        asm_file, err.message()));
+    return llvm::createStringError(
+        llvm::formatv(
+            "failed to open file: {0} to write LLVM bitcode; got error: {1}",
+            asm_file, err.message())
+            .str(),
+        std::make_error_code(std::errc::invalid_argument));
   }
   target_gen_->ConfigureModule(ctx.ll_module());
-  return target_gen_->GenerateModule(
+  auto mod = target_gen_->GenerateModule(
       ctx.ll_module(), llvm::CodeGenFileType::ObjectFile, &asm_ostream);
+  return mod;
 }
 
 // TODO: Figure out how to share scoped type info between Typer and LlvmGen
 //
-absl::Status Compiler::CompileExpression(const Form &form,
-                                         CompileContext *ctx) {
+llvm::Error Compiler::CompileExpression(const Form &form, CompileContext *ctx) {
   auto expr_ptr = parser_.ParseExpression(form, ctx->parsed_module());
 
-  if (!expr_ptr.ok()) {
-    return expr_ptr.status();
+  if (!expr_ptr) {
+    return expr_ptr.takeError();
   }
-  auto &expr = *expr_ptr.value();
+  auto &expr = *expr_ptr.get();
   auto mod = ctx->parsed_module();
   if (mod == nullptr) {
-    return absl::InternalError("compilation context has null Module");
+    return llvm::createStringError("compilation context has null Module");
   }
   // TODO: Separate compilation of module header?
   // Once we parse the module header, we can initialize the module.
   if (auto name_symbol = mod->Header().name; name_symbol) {
     ctx->InitLlvmModule();
   }
-  logging() << "[PE] " << expr << std::endl;
-  logging() << "[EI] " << *mod->ExprGetInfo(expr) << std::endl;
+  logging() << llvm::formatv("[PE] {0}\n", expr);
+  logging() << llvm::formatv("[EI] {0}\n", *mod->ExprGetInfo(expr));
 
   auto typed_mod = ctx->typed_module();
   if (typed_mod == nullptr) {
-    return absl::InternalError("compilation context has null TypedModule");
+    return llvm::createStringError("compilation context has null TypedModule");
   }
   // TODO: Move this initialization out.
   auto typer =
@@ -113,27 +109,27 @@ absl::Status Compiler::CompileExpression(const Form &form,
   logging() << "[TC] " << result.IsOk() << '\n';
   if (!result.IsOk()) {
     result.LogErrors(logging());
-    return absl::InvalidArgumentError("type check failed");
+    return llvm::createStringError(std::errc::invalid_argument,
+                                   "type check failed");
   }
-  logging() << "[TI] " << typed_mod->TypeOf(expr) << std::endl;
+  logging() << llvm::formatv("[TI] {0}\n", typed_mod->TypeOf(expr));
 
   auto codegen = compiler::LlvmGen(compiler::Mode::kAot, typed_mod,
                                    ctx->ll_context(), ctx->ll_module());
   auto code = codegen.GenerateExpression(expr);
 
   if (!code) {
-    return FromLlvmError(code.takeError());
+    return code.takeError();
   } else if (*code == nullptr) {
-    logging() << "[CC] NULL" << std::endl;
+    logging() << "[CC] NULL\n";
     // Expression does not generate any code.
-    return absl::OkStatus();
+    return llvm::Error::success();
   }
   logging() << "[CC] ";
-  llvm::raw_os_ostream ll_ostream(logging());
-  code.get()->print(ll_ostream, /*IsForDebug=*/true);
-  logging() << std::endl;
+  code.get()->print(logging(), /*IsForDebug=*/true);
+  logging() << '\n';
 
-  return absl::OkStatus();
+  return llvm::Error::success();
 }
 
 } // namespace dub

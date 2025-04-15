@@ -2,6 +2,7 @@
 #define DUB_SYMBOL_H_
 
 #include <cassert>
+#include <ostream>
 #include <string>
 #include <string_view>
 

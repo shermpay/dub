@@ -7,7 +7,6 @@
 #include "src/errors.h"
 #include "src/form.h"
 
-#include "absl/status/statusor.h"
 #include "llvm/Support/Error.h"
 
 #include <system_error>
@@ -46,13 +45,13 @@ class Parser final {
 public:
   explicit Parser() {}
 
-  absl::StatusOr<Module> ParseModule(const List &forms) const;
+  llvm::Expected<Module> ParseModule(const List &forms) const;
 
-  absl::StatusOr<ModuleDecl> ParseModuleHeader(const Form &form,
+  llvm::Expected<ModuleDecl> ParseModuleHeader(const Form &form,
                                                Module *modul) const;
 
   // Parses a top-level expression and add it to the Module.
-  absl::StatusOr<Expression *> ParseExpression(const Form &form,
+  llvm::Expected<Expression *> ParseExpression(const Form &form,
                                                Module *modul) const;
 
 private:

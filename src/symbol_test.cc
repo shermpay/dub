@@ -47,7 +47,7 @@ TEST(SymbolTest, GetReturnsSamePointerAndHash) {
 }
 
 TEST(SymbolTest, OStream) {
-  const Symbol& sym = Symbol::Get("a-symbol");
+  const Symbol &sym = Symbol::Get("a-symbol");
 
   std::ostringstream out;
   out << sym;
@@ -56,7 +56,7 @@ TEST(SymbolTest, OStream) {
 }
 
 TEST(SymbolTest, LLVMFormat) {
-  const Symbol& sym = Symbol::Get("a-symbol");
+  const Symbol &sym = Symbol::Get("a-symbol");
 
   EXPECT_EQ(llvm::formatv(true, "%{0}%", sym).str(), "%a-symbol%");
 }

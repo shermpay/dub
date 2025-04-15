@@ -4,7 +4,6 @@
 #include <memory>
 #include <optional>
 
-#include "absl/status/status.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
@@ -60,8 +59,8 @@ private:
   const TypedModule *typed_module_;
 };
 
-absl::Status WriteBitcode(const llvm::Module &ll_module,
-                          llvm::raw_fd_stream *stream);
+llvm::Error WriteBitcode(const llvm::Module &ll_module,
+                         llvm::raw_fd_stream *stream);
 
 } // namespace dub::compiler
 

@@ -1,6 +1,5 @@
 #include "llvm_gen.h"
 
-#include <iostream>
 #include <llvm/Support/Error.h>
 #include <optional>
 
@@ -28,10 +27,7 @@ struct ConvertType final {
 
   ConvertType(llvm::LLVMContext &context) : context(context) {}
 
-  llvm::Type *Convert(Type type) {
-    // std::cout << "Convert: " << type << '\n';
-    return type.Match(*this);
-  }
+  llvm::Type *Convert(Type type) { return type.Match(*this); }
 
   llvm::Type *operator()(type::Basic type) {
     switch (type) {
@@ -115,7 +111,6 @@ llvm::Expected<llvm::Value *>
 LlvmGen::BuiltinFuncGen(BuiltinInfo info, const Symbol &name,
                         const llvm::ArrayRef<Expression> args) {
   (void)name;
-  std::cout << "BuiltinFuncGen: " << static_cast<int>(info.kind()) << std::endl;
   switch (info.kind()) {
   case Builtin::kIntAdd: {
     auto left = GenerateExpression(args[0]);
@@ -216,7 +211,6 @@ struct ExprGen final {
 
   llvm::Expected<llvm::Value *> operator()(const Call &expr) const {
     auto &target = expr.target();
-    std::cout << "Codegen call: " << target << std::endl;
 
     if (!target.Is<const Symbol *>()) {
       return llvm::createStringError(
@@ -260,7 +254,6 @@ struct ExprGen final {
       }
       args.push_back(*arg);
     }
-    std::cout << "Creating Call instruction" << std::endl;
     return llgen.builder_->CreateCall(
         callee, args, callee->getReturnType()->isVoidTy() ? "" : "calltmp");
   }
@@ -269,7 +262,6 @@ struct ExprGen final {
     llvm_unreachable("Codegen If");
   }
   llvm::Expected<llvm::Value *> operator()(const Fn &fn) const {
-    std::cout << "Codegen Fn" << std::endl;
     llvm::Function *ll_func = llgen.ll_module_->getFunction(fn.name()->value());
     auto bb = llvm::BasicBlock::Create(*llgen.context_, "entry", ll_func);
     llgen.builder_->SetInsertPoint(bb);

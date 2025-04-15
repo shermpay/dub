@@ -5,7 +5,6 @@
 #include "src/form.h"
 #include "src/symbol.h"
 
-#include "absl/status/statusor.h"
 #include "llvm/ADT/ArrayRef.h"
 
 #include <ostream>
@@ -166,7 +165,7 @@ static const Symbol &kPtrTag = Symbol::Get("Ptr");
 // Constructor is not a dub type, but it is a function of types -> type.
 class Constructor {
 public:
-  virtual absl::StatusOr<Type> operator()(std::vector<Type> args) const = 0;
+  virtual llvm::Expected<Type> operator()(std::vector<Type> args) const = 0;
 };
 
 Constructor *ArrayCtor();
@@ -177,8 +176,8 @@ BuiltinConstructors() noexcept;
 
 class Fn final {
 public:
-  static absl::StatusOr<Fn> Get(Type::Parameterized &underlying);
-  static absl::StatusOr<Fn> Get(Type &type);
+  static llvm::Expected<Fn> Get(Type::Parameterized &underlying);
+  static llvm::Expected<Fn> Get(Type &type);
   static Type MakeType(Type::Tuple params, Type ret);
 
   Type::Tuple ParamTypes() const {

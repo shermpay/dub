@@ -1,11 +1,9 @@
 #include "src/compiler/semantic.h"
 
-#include <iostream>
 #include <memory>
 #include <utility>
 
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
 
 #include "src/compiler/constant.h"
@@ -40,56 +38,56 @@ struct MakeType final {
 
   MakeType(Typer &c) : typer_(c) {}
 
-  absl::StatusOr<Type> operator()(const Constant val) const {
+  llvm::Expected<Type> operator()(const Constant val) const {
     return Type(Constant(val));
   }
 
-  absl::StatusOr<Type> operator()(const Symbol *name) const {
+  llvm::Expected<Type> operator()(const Symbol *name) const {
     // TODO: Resolve the type to a type value?
     auto type = typer_.info().LookupType(*name);
     if (!type.has_value()) {
-      return absl::NotFoundError(
+      return llvm::createStringError(
           llvm::formatv("type name '{0}' is undefined", name).str());
     }
     return type.value();
   }
 
-  absl::StatusOr<Type> operator()(const TypeExpr::Construct expr) const {
+  llvm::Expected<Type> operator()(const TypeExpr::Construct expr) const {
     auto ctor = typer_.info().LookupConstructor(expr.name());
     if (!ctor.has_value())
-      return absl::NotFoundError(
+      return llvm::createStringError(
           llvm::formatv("type constructor '{0}' is undefined", expr.name())
               .str());
     std::vector<Type> type_args;
     for (const auto &type_expr : expr.types()) {
       auto type_arg = type_expr.Match(*this);
-      if (!type_arg.ok()) {
+      if (!type_arg) {
         return type_arg;
       }
-      type_args.push_back(type_arg.value());
+      type_args.push_back(*type_arg);
     }
     return (**ctor)(type_args);
   }
 
-  absl::StatusOr<Type> operator()(const TypeExpr::Tuple expr) const {
+  llvm::Expected<Type> operator()(const TypeExpr::Tuple expr) const {
     std::vector<Type> types;
     for (const auto &type_expr : expr.types) {
       auto type = type_expr.Match(*this);
-      if (!type.ok()) {
-        return type.status();
+      if (!type) {
+        return type;
       }
-      types.push_back(type.value());
+      types.push_back(*type);
     }
     return Type(type::Tuple<Type>(types));
   }
-  absl::StatusOr<Type> operator()(const TypeExpr::Struct expr) const {
+  llvm::Expected<Type> operator()(const TypeExpr::Struct expr) const {
     Type::Struct st;
     for (const auto &field_def : expr.fields()) {
       auto field_type = field_def.second.Match(*this);
-      if (!field_type.ok()) {
-        return field_type.status();
+      if (!field_type) {
+        return field_type;
       }
-      st.AddField(*field_def.first, field_type.value());
+      st.AddField(*field_def.first, *field_type);
     }
     return Type(st);
   }
@@ -126,31 +124,28 @@ struct Check final {
   Result<Type> operator()(const TypeDef &decl) {
     auto type = decl.type().Match(MakeType(typer));
 
-    if (!type.ok()) {
-      return Result<Type>::Unproceedable(
-          dub::StatusError::LlvmError(type.status()));
+    if (!type) {
+      return Result<Type>::Unproceedable(type.takeError());
     }
 
     // TODO: Handle redefinitions.
-    typer.info().AddType(decl.name(), type.value());
+    typer.info().AddType(decl.name(), *type);
     return type::Unit();
   }
 
   Result<Type> operator()(const NameDecl &def) {
     auto type = def.type().Match(MakeType(typer));
 
-    if (!type.ok()) {
-      return Result<Type>::Unproceedable(
-          dub::StatusError::LlvmError(type.status()));
+    if (!type) {
+      return Result<Type>::Unproceedable(type.takeError());
     }
 
     // TODO: Handle redefinitions.
-    typer.info().AddName(def.name(), type.value());
+    typer.info().AddName(def.name(), *type);
     return type::Unit();
   }
 
   Result<Type> operator()(const Call &expr) {
-    std::cout << "Call: " << expr << std::endl;
     // TODO: Support any function object
     const auto callee = expr.target().Get<const Symbol *>();
 
@@ -161,7 +156,7 @@ struct Check final {
     }
 
     auto fn_type = type::Fn::Get(callee_type.value());
-    if (!fn_type.ok()) {
+    if (!fn_type) {
       // TODO: Invalid Fn type, this should be caught during creation.
     }
     auto param_types = fn_type->ParamTypes();
@@ -178,10 +173,7 @@ struct Check final {
       }
     }
 
-    std::cout << "Callee: " << *callee << std::endl;
     if (*callee == Symbol::Get("add-i64")) {
-      std::cout << "Adding BuiltinInfo to Expression: " << the_expr
-                << std::endl;
       // TODO: This won't work for high-order funcs
       const auto &arg_types = param_types.types();
       if (arg_types.size() == 2) {
@@ -223,10 +215,10 @@ struct Check final {
 
   Result<Type> operator()(const VarDef &def) {
     auto type = def.type().Match(MakeType(typer));
-    if (!type.ok()) {
-      return Result<Type>::Unproceedable(StatusError(type.status()));
+    if (!type) {
+      return Result<Type>::Unproceedable(type.takeError());
     }
-    typer.info().AddName(def.name(), type.value());
+    typer.info().AddName(def.name(), *type);
 
     // TODO: check init
     return type::Unit();
@@ -243,8 +235,7 @@ struct Check final {
 
   Result<Type> operator()(const auto &expr) {
     // TODO: Assign type to expression.
-    std::cerr << "warning: ignoring type of expression => " << expr
-              << std::endl;
+    (void)expr;
     return type::Unit();
   }
 };

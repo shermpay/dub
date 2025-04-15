@@ -8,13 +8,8 @@
 namespace dub {
 
 template <typename S, typename F>
-concept Formattable = requires(S stream, F formattable) {
+concept Formattable = requires(S stream, const F formattable) {
   { formattable.format(stream) } -> std::same_as<S>;
-};
-
-template <typename S, typename T>
-concept OutputableStream = requires(S &stream, T arg) {
-  { stream << arg } -> std::same_as<S &>;
 };
 
 } // namespace dub

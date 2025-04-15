@@ -7,8 +7,6 @@ namespace dub {
 enum class ErrorCode : int {
   kParserError,
   kTypeCheckerError,
-  // TODO: remove
-  kStatusError,
 };
 
 inline std::error_code make_error_code(ErrorCode code) {

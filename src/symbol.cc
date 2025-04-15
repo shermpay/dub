@@ -1,10 +1,12 @@
 #include "src/symbol.h"
 
+#include <ostream>
+
 namespace dub {
 
-const Symbol& Symbol::Get(std::string name) {
+const Symbol &Symbol::Get(std::string name) {
   // TODO: This is not thread safe, as Interns is not a concurrent map
-  auto& interns = Interns();
+  auto &interns = Interns();
   auto iter = interns.find(name);
   if (iter == interns.end()) {
     auto [new_iter, inserted] = interns.try_emplace(name, name, CtorKey{});

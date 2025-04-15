@@ -60,7 +60,6 @@ cc_library(
     deps = [
         ":constant",
         "//src:symbol",
-        "@absl//absl/status:statusor",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -107,7 +106,6 @@ cc_library(
         ":parser",
         ":semantic",
         ":target_gen",
-        "@absl//absl/status",
         "@llvm-project//llvm:BitWriter",
         "@llvm-project//llvm:Support",
     ],
@@ -123,7 +121,6 @@ cc_library(
         ":module",
         ":result",
         "//src:base",
-        "@absl//absl/status:statusor",
     ],
 )
 
@@ -134,6 +131,7 @@ cc_test(
         ":parser",
         "//src/testing",
         "@googletest//:gtest_main",
+        "@llvm-project//llvm:TestingSupport",
     ],
 )
 
@@ -148,6 +146,7 @@ cc_library(
         ":type",
         ":type_info",
         ":typed_module",
+        "//src:base",
         "//src:symbol",
     ],
 )
@@ -170,7 +169,6 @@ cc_library(
     hdrs = ["result.h"],
     deps = [
         "//src:base",
-        "@absl//absl/status:statusor",
     ],
 )
 
@@ -179,7 +177,6 @@ cc_test(
     srcs = ["result_test.cc"],
     deps = [
         ":result",
-        "@absl//absl/status",
         "@googletest//:gtest_main",
     ],
 )
@@ -211,7 +208,6 @@ cc_library(
     hdrs = ["target_gen.h"],
     deps = [
         # TODO: use select to build for single current arch, specific arch or all arch.
-        "@absl//absl/status:statusor",
         "@llvm-project//llvm:X86AsmParser",
         "@llvm-project//llvm:X86CodeGen",
         # "@llvm//llvm:AllTargetsDisassemblers",

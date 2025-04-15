@@ -1,16 +1,19 @@
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <string_view>
+#include "src/compiler/compiler.h"
+#include "src/compiler/target_gen.h"
+#include "src/reader.h"
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/flags/usage.h"
-#include "absl/status/status.h"
+#include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/raw_ostream.h"
 
-#include "src/compiler/compiler.h"
-#include "src/compiler/target_gen.h"
-#include "src/reader.h"
+// for fileno, stdout, stderr
+#include <cstdio> // IWYU pragma: keep
+#include <fstream>
+#include <llvm/Support/Error.h>
+#include <string>
+#include <string_view>
 
 namespace {
 
@@ -18,29 +21,30 @@ struct Options {
   std::string_view input;
   std::string_view output;
   std::string_view emit_llvm;
+  llvm::raw_ostream &logging;
 };
 
-static absl::Status CompileFile(const Options &opts) {
+static llvm::Error CompileFile(const Options &opts) {
   std::ifstream in(std::string(opts.input));
 
   if (!in) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("failed to open file: %s", opts.input));
+    return llvm::createStringError(
+        llvm::formatv("failed to open file: {0}", opts.input).str());
   }
 
   dub::Reader reader(in);
   reader.EnableLocation(dub::SourceReader(std::string(opts.input)));
   auto forms = reader.ReadAll();
 
-  if (!forms.ok()) {
-    return forms.status();
+  if (!forms) {
+    return forms.takeError();
   }
 
-  auto compiler = dub::Compiler::MakeDefaultAot(std::cout);
-  if (!compiler.ok()) {
-    return compiler.status();
+  auto compiler = dub::Compiler::MakeDefaultAot(opts.logging);
+  if (!compiler) {
+    return compiler.takeError();
   }
-  return compiler.value().CompileModule(forms.value());
+  return compiler->CompileModule(*forms);
 }
 
 } // namespace
@@ -48,10 +52,13 @@ static absl::Status CompileFile(const Options &opts) {
 ABSL_FLAG(std::string, output, "", "output binary file name");
 ABSL_FLAG(std::string, emit_llvm, "", "output LLVM IR file name");
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
+  llvm::raw_fd_ostream outs(fileno(stdout), false);
+  llvm::raw_fd_ostream errs(fileno(stderr), false);
+
   absl::SetProgramUsageMessage("Usage: dubc INPUT --output OUTPUT");
   auto arg_vec = absl::ParseCommandLine(argc, argv);
-  std::cout << "dub compiler\n";
+  outs << "dub compiler\n";
 
   if (arg_vec.size() != 2) {
     std::cerr << absl::ProgramUsageMessage() << '\n';
@@ -66,22 +73,23 @@ int main(int argc, char* argv[]) {
   //   return -1;
   // }
 
-  std::cout << "input:  " << arg_vec[1] << '\n';
-  std::cout << "output: " << out << std::endl;
+  outs << "input:  " << arg_vec[1] << '\n';
+  outs << "output: " << out << '\n';
 
   dub::compiler::TargetGen::InitializeAllTargets();
 
   auto opts = Options{
-	.input = arg_vec[1],
-	.output = out,
-	.emit_llvm = absl::GetFlag(FLAGS_emit_llvm),
+      .input = arg_vec[1],
+      .output = out,
+      .emit_llvm = absl::GetFlag(FLAGS_emit_llvm),
+      .logging = outs,
   };
-  auto status = CompileFile(opts);
-  if (!status.ok()) {
-    std::cerr << "failed to compile: " << status << std::endl;
-    return status.raw_code();
+  auto err = CompileFile(opts);
+  if (err) {
+    errs << "failed to compile: " << err << '\n';
+    return llvm::errorToErrorCode(std::move(err)).value();
   }
 
-  std::cout << "compilation status: " << status << std::endl;
+  outs << "compilation status: " << err << '\n';
   return 0;
 }

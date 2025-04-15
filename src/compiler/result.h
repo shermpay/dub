@@ -1,37 +1,13 @@
 #ifndef DUB_COMPILER_RESULT_H_
 #define DUB_COMPILER_RESULT_H_
 
-#include "src/errors.h"
-
-#include "absl/status/status.h"
 #include "llvm/Support/Error.h"
-#include "llvm/Support/raw_os_ostream.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <optional>
-#include <sstream>
 #include <vector>
 
 namespace dub {
-
-class StatusError : public llvm::ErrorInfo<StatusError> {
-public:
-  static char ID;
-  explicit StatusError(absl::Status status) : status_(status) {}
-
-  static llvm::Error LlvmError(absl::Status status) {
-    return llvm::make_error<StatusError>(StatusError(status));
-  }
-
-  void log(llvm::raw_ostream &os) const override { os << status_.ToString(); }
-
-  std::error_code convertToErrorCode() const override {
-    return make_error_code(ErrorCode::kStatusError);
-  }
-
-private:
-  absl::Status status_;
-};
 
 /// Result holds the result information of a compilation "phase".
 /// A successful Result contains no errors.
@@ -99,17 +75,17 @@ public:
 
   bool HasError() const noexcept { return !errors_.empty(); }
 
-  void LogErrors(std::ostream &stream) {
-    llvm::raw_os_ostream os(stream);
+  void LogErrors(llvm::raw_ostream &stream) {
     for (auto &err : errors_) {
-      os << err;
+      stream << err;
     }
   }
 
   std::string FormatErrors() {
-    std::ostringstream st;
+    std::string s;
+    llvm::raw_string_ostream st(s);
     LogErrors(st);
-    return st.str();
+    return s;
   }
 
 private:

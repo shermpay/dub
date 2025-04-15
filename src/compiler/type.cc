@@ -2,9 +2,10 @@
 
 #include "src/symbol.h"
 
-#include "absl/status/statusor.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
 
+#include <llvm/Support/Error.h>
 #include <utility>
 
 namespace dub {
@@ -65,9 +66,9 @@ std::vector<std::pair<const Symbol *, Type>> BuiltinNames() noexcept {
 }
 
 class ArrayConstructor : public Constructor {
-  absl::StatusOr<Type> operator()(std::vector<Type> args) const override {
+  llvm::Expected<Type> operator()(std::vector<Type> args) const override {
     if (args.size() != 2) {
-      return absl::InvalidArgumentError(
+      return llvm::createStringError(
           llvm::formatv("Array constructor: invalid number of args (got {0}), "
                         "expected 2 args",
                         args.size())
@@ -76,7 +77,7 @@ class ArrayConstructor : public Constructor {
 
     if (!args[0].Is<compiler::Constant>() ||
         !args[0].Get<compiler::Constant>().Is<std::int64_t>()) {
-      return absl::InvalidArgumentError(
+      return llvm::createStringError(
           llvm::formatv("Array constructor: invalid value for arg 0 (got "
                         "{0}), expected constant expression of type int64",
                         args[0])
@@ -84,7 +85,7 @@ class ArrayConstructor : public Constructor {
     }
 
     if (args[1].Is<compiler::Constant>()) {
-      return absl::InvalidArgumentError(
+      return llvm::createStringError(
           llvm::formatv("Array constructor: invalid value for arg 1 (got {0}), "
                         "expected type",
                         args[1])
@@ -101,11 +102,13 @@ Constructor *ArrayCtor() {
 }
 
 class FnConstructor : public Constructor {
-  absl::StatusOr<Type> operator()(std::vector<Type> args) const override {
+  llvm::Expected<Type> operator()(std::vector<Type> args) const override {
     if (args.size() != 2) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "Fn constructor: invalid number of args (got %d), expected 2 args",
-          args.size()));
+      return llvm::createStringError(
+          llvm::formatv("Fn constructor: invalid number of args (got {0}), "
+                        "expected 2 args",
+                        args.size())
+              .str());
     }
 
     return Type(Parameterized<Type>(kFnTag, args), Property::kCallable);
@@ -118,9 +121,9 @@ Constructor *FnCtor() {
 }
 
 class PtrConstructor : public Constructor {
-  absl::StatusOr<Type> operator()(std::vector<Type> args) const override {
+  llvm::Expected<Type> operator()(std::vector<Type> args) const override {
     if (args.size() != 1) {
-      return absl::InvalidArgumentError(
+      return llvm::createStringError(
           llvm::formatv("Fn constructor: invalid number of args (got {0}), "
                         "expected 1 args",
                         args.size())
@@ -153,24 +156,23 @@ Type Fn::MakeType(Type::Tuple params, Type ret) {
   return Type(Parameterized<Type>(kFnTag, args), Property::kCallable);
 }
 
-absl::StatusOr<Fn> Fn::Get(Type::Parameterized &underlying) {
+llvm::Expected<Fn> Fn::Get(Type::Parameterized &underlying) {
   if (*underlying.name != Symbol::Get("Fn")) {
-    return absl::InvalidArgumentError("type is not Fn");
+    return llvm::createStringError("type is not Fn");
   }
   if (underlying.types.size() != 2) {
-    return absl::InvalidArgumentError("type should only have two arguments");
+    return llvm::createStringError("type should only have two arguments");
   }
   if (!underlying.types[0].Is<Type::Tuple>()) {
-    return absl::InvalidArgumentError(
-        "first type argument must be a tuple type");
+    return llvm::createStringError("first type argument must be a tuple type");
   }
   return Fn(underlying);
 }
 
-absl::StatusOr<Fn> Fn::Get(Type &type) {
+llvm::Expected<Fn> Fn::Get(Type &type) {
   auto underlying = type.GetIf<Type::Parameterized>();
   if (!underlying) {
-    return absl::InvalidArgumentError("type is not a parameterized type");
+    return llvm::createStringError("type is not a parameterized type");
   }
   return Fn(*underlying);
 }

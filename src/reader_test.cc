@@ -3,6 +3,8 @@
 #include "src/form.h"
 #include "src/symbol.h"
 
+#include "llvm/Support/Error.h"
+#include "llvm/Testing/Support/Error.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -15,17 +17,15 @@ using ::testing::Pointee;
 using ::testing::Pointer;
 using ::testing::VariantWith;
 
-MATCHER(IsOk, "") { return arg.ok(); }
-
 MATCHER_P(IsOkAndHolds, matcher, "") {
-  if (arg.ok()) {
-    return ExplainMatchResult(matcher, arg.value(), result_listener);
+  if (arg) {
+    return ExplainMatchResult(matcher, arg.get(), result_listener);
   }
   return false;
 }
 
-#define ASSERT_OK(arg) ASSERT_THAT(arg, IsOk())
-#define ASSERT_OK_EQ(arg, want) ASSERT_THAT(arg, IsOkAndHolds(want))
+#define ASSERT_OK(arg) ASSERT_THAT_EXPECTED(arg, llvm::Success())
+#define ASSERT_OK_EQ(arg, want) ASSERT_THAT_EXPECTED(arg, llvm::HasValue(want))
 
 static std::string from_u8string(const std::u8string &s) {
   return std::string(s.begin(), s.end());

@@ -198,8 +198,13 @@ namespace llvm {
 void format_provider<dub::Type>::format(const dub::Type &type,
                                         raw_ostream &stream, StringRef style) {
   (void)style;
-  type.Match(
-      [&stream](const auto &kind) { stream << llvm::formatv("{0}", kind); });
+  type.Match([&stream](const auto &kind) {
+    using T = std::decay_t<decltype(kind)>;
+    if constexpr (std::is_pointer_v<T>)
+      stream << llvm::formatv("{0}", *kind);
+    else
+      stream << llvm::formatv("{0}", kind);
+  });
 }
 
 void format_provider<dub::type::Basic>::format(const dub::type::Basic &type,
@@ -238,7 +243,7 @@ void format_provider<dub::type::Parameterized<dub::Type>>::format(
     const dub::type::Parameterized<dub::Type> &type, raw_ostream &stream,
     StringRef style) {
   (void)style;
-  stream << llvm::formatv("({0}", type.name);
+  stream << llvm::formatv("({0}", *type.name);
   for (const auto &t : type.types) {
     stream << llvm::formatv(" {0}", t);
   }

@@ -41,13 +41,14 @@ llvm::Error Compiler::CompileModule(const List &forms) {
 
   for (const auto &form : forms) {
     auto err = CompileExpression(form, &ctx);
-    if (!err) {
+    if (err) {
       return err;
     }
   }
 
   // TODO: Pass the file names in.
   auto mod_name = ctx.parsed_module()->Header().name->value();
+  printf("module name=%s\n", mod_name.data());
   auto bc_file = llvm::formatv("out/{0}.bc", mod_name).str();
   std::error_code err;
   llvm::raw_fd_ostream bc_ostream(bc_file, err);
@@ -73,6 +74,8 @@ llvm::Error Compiler::CompileModule(const List &forms) {
   target_gen_->ConfigureModule(ctx.ll_module());
   auto mod = target_gen_->GenerateModule(
       ctx.ll_module(), llvm::CodeGenFileType::ObjectFile, &asm_ostream);
+
+  printf("wrote object\n");
   return mod;
 }
 

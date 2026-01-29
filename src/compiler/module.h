@@ -10,6 +10,39 @@
 
 namespace dub {
 
+struct ExprId final {
+  const Symbol *module_name;
+  std::uint64_t id;
+
+  static ExprId Default() { return ExprId{nullptr, 0}; }
+
+  std::size_t ToKey() const {
+    // TODO: Add module name
+    return id;
+  }
+
+  friend bool operator==(const ExprId &lhs, const ExprId &rhs) {
+    // TODO: Add module name
+    return lhs.id == rhs.id;
+  }
+};
+
+} // namespace dub
+
+template <> struct llvm::DenseMapInfo<dub::ExprId> {
+  static inline dub::ExprId getEmptyKey() { return dub::ExprId::Default(); }
+  static inline dub::ExprId getTombstoneKey() {
+    return dub::ExprId{nullptr, static_cast<std::uint64_t>(-1)};
+  }
+  static unsigned getHashValue(const dub::ExprId &val) { return val.ToKey(); }
+
+  static bool isEqual(const dub::ExprId &LHS, const dub::ExprId &RHS) {
+    return LHS == RHS;
+  }
+};
+
+namespace dub {
+
 // A Module contains the imports and a sequence of Expressions, it is the root
 // AST node. It owns the memory of all the children nodes.
 class Module final {

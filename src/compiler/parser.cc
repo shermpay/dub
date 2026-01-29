@@ -275,7 +275,15 @@ Result<VarDef> Parser::ParseVarDef(const List &list, Module *modul) const {
     return Result<VarDef>::Unproceedable(type_expr.errors());
   }
 
-  // TODO: parse init value
+  tail = tail.Tail();
+  if (!tail.IsEmpty()) {
+    auto init = ParseExpr(tail.Head(), modul);
+    if (init.HasError()) {
+      return Result<VarDef>::Unproceedable(init.errors());
+    }
+    return VarDef(name.get<const Symbol &>(), type_expr.Value(),
+                  std::make_unique<Expression>(std::move(init.Value())));
+  }
 
   return VarDef(name.get<const Symbol &>(), type_expr.Value());
 }
@@ -351,19 +359,19 @@ Result<NameDecl> Parser::ParseNameDecl(const List &list, Module *modul) const {
   auto tail = list.Tail();
   if (tail.IsEmpty()) {
     return Result<NameDecl>::Unproceedable(
-        llvm::createStringError("type form is empty"));
+        llvm::createStringError("declare form is empty"));
   }
 
   auto name = tail.Head();
   if (!name.is<const Symbol *>()) {
     return Result<NameDecl>::Unproceedable(
-        llvm::createStringError("type form expects type name as a symbol"));
+        llvm::createStringError("declare form expects type name as a symbol"));
   }
 
   tail = tail.Tail();
   if (tail.IsEmpty()) {
     return Result<NameDecl>::Unproceedable(
-        llvm::createStringError("type form expects a type expression"));
+        llvm::createStringError("declare form expects a type expression"));
   }
 
   auto type_expr = ParseType(tail.Head(), modul);

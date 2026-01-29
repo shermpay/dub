@@ -5,6 +5,7 @@ py_binary(
     srcs = ["dub.py"],
     data = [
         "//src:dubc",
+        "//src:repl",
     ],
     deps = ["@rules_python//python/runfiles"],
 )

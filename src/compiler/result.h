@@ -77,7 +77,7 @@ public:
 
   void LogErrors(llvm::raw_ostream &stream) {
     for (auto &err : errors_) {
-      stream << err;
+      stream << err << '\n';
     }
   }
 

@@ -49,9 +49,10 @@ public:
   static char ID;
   TypeNameUndefinedError(const Symbol &name, const Expression *expr)
       : name_(name), expr_(expr),
-        message_(llvm::formatv("type name '{0}' is undefined (expression: {1})",
-                               name_, *expr_)
-                     .str()) {}
+        message_(
+            llvm::formatv("type name '{0}' is undefined (expression: `{1}`)",
+                          name_, *expr_)
+                .str()) {}
   ~TypeNameUndefinedError() = default;
 
   void log(llvm::raw_ostream &os) const noexcept override { os << message_; }

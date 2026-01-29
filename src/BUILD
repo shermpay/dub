@@ -21,7 +21,6 @@ cc_binary(
 cc_binary(
     name = "repl",
     srcs = ["repl.cc"],
-    visibility = ["//visibility:private"],
     deps = [
         ":reader",
         "//src/compiler",

@@ -3,16 +3,18 @@
 
 ** Why dub?
 
-  To provide a high-level language which is meant as a target for code generation. Similar to how C is sometimes used as a target for code generation, dub provides a way to generate WebAssembly (WASM).
+  +To provide a high-level language which is meant as a target for code generation. Similar to how C is sometimes used as a target for code generation, dub provides a way to generate WebAssembly (WASM).+
 
 *** Why not generate WASM directly?
-   Because WASM is quite low-level and does not provide certain constructs out of the box such as structs. 
+   +Because WASM is quite low-level and does not provide certain constructs out of the box such as structs.+
 
 *** How about existing tools like Binaryen?
-   Binaryen is a code generator for WebAssembly.
+   +Binaryen is a code generator for WebAssembly.+
 
-* TODO Remove absl dependency and rely entirely on LLVM.
+* WORKING Remove absl dependency and rely entirely on LLVM.
   Rationale: remove dependency, reduce build times, reduce binary size and also gain knowledge of LLVM APIs.
+
+  As of [2025-04-16 Wed] absl usage (except for flag parsing) has been removed.
 
 ** absl::Format and AbslStringify
    https://llvm.org/docs/ProgrammersManual.html#formatting-strings-the-formatv-function
@@ -28,3 +30,9 @@
 
 
 * TODO Use C++20 concepts
+
+* TODO [2025-04-16 Wed] redo Expression memory ownership and ID solution.
+** Expression as value types
+   Expressions are trees that contain the actual data.
+** Node as the Expression with an ID
+   Nodes belong to a module, and will have unique IDs to identify them.

@@ -7,6 +7,32 @@
 
 #include <type_traits>
 
+namespace dub::exprs {
+
+template <>
+void ExprBase<Expression>::Format(llvm::raw_ostream &stream,
+                                  llvm::StringRef style) const {
+  (void)style;
+  stream << llvm::formatv("({0}", Id());
+  for (const auto &expr : SubExprs()) {
+    stream << llvm::formatv(" {0}", expr);
+  }
+  stream << ')';
+}
+
+template <>
+void Call<Expression>::Format(llvm::raw_ostream &stream,
+                              llvm::StringRef style) const {
+  (void)style;
+  stream << llvm::formatv("({0}", target());
+  for (auto &arg : args()) {
+    stream << llvm::formatv(" {0}", arg);
+  }
+  stream << ')';
+}
+
+} // namespace dub::exprs
+
 namespace llvm {
 
 // TODO: Implement using concepts
@@ -17,7 +43,13 @@ void format_provider<dub::TypeExpr>::format(const dub::TypeExpr &type,
                                             raw_ostream &stream,
                                             StringRef style) {
   (void)style;
-  type.Match([&stream](const auto &kind) { stream << formatv("{0}", kind); });
+  type.Match([&stream](const auto &kind) {
+    using T = std::decay_t<decltype(kind)>;
+    if constexpr (std::is_pointer_v<T>)
+      stream << formatv("{0}", *kind);
+    else
+      stream << formatv("{0}", kind);
+  });
 }
 
 void format_provider<dub::TypeExpr::Construct>::format(
@@ -75,12 +107,7 @@ void format_provider<dub::TypeDef>::format(const dub::TypeDef &def,
 
 void format_provider<dub::exprs::ExprBase<>>::format(
     const dub::exprs::ExprBase<> &expr, raw_ostream &stream, StringRef style) {
-  (void)style;
-  stream << formatv("({0}", expr.Id());
-  for (const auto &expr : expr.SubExprs()) {
-    stream << formatv(" {0}", expr);
-  }
-  stream << ')';
+  expr.Format(stream, style);
 }
 
 void format_provider<dub::VarDef>::format(const dub::VarDef &expr,
@@ -121,12 +148,7 @@ void format_provider<dub::Fn>::format(const dub::Fn &fn, raw_ostream &stream,
 
 void format_provider<dub::Call>::format(const dub::Call &call,
                                         raw_ostream &stream, StringRef style) {
-  (void)style;
-  stream << llvm::formatv("({0}", call.target());
-  for (auto &arg : call.args()) {
-    stream << llvm::formatv(" {0}", arg);
-  }
-  stream << ')';
+  call.Format(stream, style);
 }
 
 void format_provider<dub::Array>::format(const dub::Array &arr,
@@ -195,24 +217,11 @@ void format_provider<dub::Expression>::format(const dub::Expression &expr,
     using T = std::decay_t<decltype(kind)>;
     if constexpr (std::is_base_of_v<dub::exprs::ExprBase<>, T>)
       format_provider<dub::exprs::ExprBase<>>::format(kind, stream, style);
+    else if constexpr (std::is_pointer_v<T>)
+      stream << formatv("{0}", *kind);
     else
       stream << formatv("{0}", kind);
-    // else if constexpr (std::is_same_v<T, dub::Array>)
-    //   stream << "array";
-    // else if constexpr (std::is_same_v<T, dub::VarDef>)
-    //   stream << "vardef";
-    // else if constexpr (std::is_same_v<T, dub::Set>)
-    //   stream << "set";
-    // else if constexpr (std::is_same_v<T, dub::MemberAccess>)
-    //   stream << "memberaccess";
-    // else if constexpr (std::is_same_v<T, dub::ModuleDecl>)
-    //   stream << "moduledecl";
-    // else if constexpr (std::is_base_of_v<dub::exprs::ExprBase<>, T>)
-    //   stream << "expr_base";
-    // else
   });
-  // std::visit([&stream](const auto &kind) { stream << "foo"; },
-  // expr.kind_);
 }
 } // namespace llvm
 
@@ -221,4 +230,5 @@ std::ostream &operator<<(std::ostream &os, const TypeDef &type) {
   os << llvm::formatv("{0}", type).str();
   return os;
 }
+
 } // namespace dub

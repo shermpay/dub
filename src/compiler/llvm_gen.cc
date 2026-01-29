@@ -22,6 +22,10 @@
 namespace dub::compiler {
 
 namespace {
+
+static const auto kInvalidArgumentErrCode =
+    std::make_error_code(std::errc::invalid_argument);
+
 struct ConvertType final {
   llvm::LLVMContext &context;
 
@@ -236,7 +240,8 @@ struct ExprGen final {
         llgen.ll_module_->getFunction(target_symbol->value());
     if (!callee) {
       return llvm::createStringError(
-          llvm::formatv("cannot find function: {0}", target_symbol).str());
+          llvm::formatv("cannot find function: {0}", *target_symbol).str(),
+          kInvalidArgumentErrCode);
     }
 
     if (callee->arg_size() != expr.args().size()) {
@@ -244,7 +249,8 @@ struct ExprGen final {
           llvm::formatv(
               "invalid number of arguments: {0}, {1} expects {2} args ",
               callee->arg_size(), target_symbol, expr.args().size())
-              .str());
+              .str(),
+          kInvalidArgumentErrCode);
     }
     std::vector<llvm::Value *> args;
     for (const auto &arg_expr : expr.args()) {
@@ -270,6 +276,7 @@ struct ExprGen final {
       auto ll_value = llgen.GenerateExpression(expr);
       if (!ll_value) {
         // TODO: return error
+        return ll_value.takeError();
       }
       if (*ll_value != nullptr) {
         ll_exprs.push_back(*ll_value);
@@ -299,9 +306,16 @@ struct ExprGen final {
           "type checker did not assign valid type to var name");
     }
     auto lltype = llgen.GenerateType(type.value());
-    auto inst = llgen.builder_->CreateAlloca(lltype);
-    llgen.AddLocal(expr.name(), inst);
-    return inst;
+    auto alloca = llgen.builder_->CreateAlloca(lltype);
+    llgen.AddLocal(expr.name(), alloca);
+    if (expr.HasInit()) {
+      auto llvalue = llgen.GenerateExpression(expr.init());
+      if (!llvalue) {
+        return llvalue;
+      }
+      llgen.builder_->CreateStore(*llvalue, alloca);
+    }
+    return llvm::UndefValue::get(llvm::Type::getVoidTy(*llgen.context_));
   }
 
   llvm::Expected<llvm::Value *> operator()(const Set &expr) const {

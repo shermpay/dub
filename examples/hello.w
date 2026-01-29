@@ -4,5 +4,5 @@
 
 (declare main (Fn [] unit))
 (fn main []
-  (puts "hello world!")
+  (puts "hello world!!")
   (return 0))

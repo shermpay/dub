@@ -13,4 +13,6 @@
   (puts str)
   (set str "world")
   (puts str)
+  (var y i64 123)
+  (printf "y is %d\n" y)
   (return x))

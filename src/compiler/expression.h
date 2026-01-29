@@ -27,6 +27,7 @@ public:
 private:
   virtual const Symbol &Id() const = 0;
   virtual const llvm::ArrayRef<ExprT> SubExprs() const = 0;
+  virtual void Format(llvm::raw_ostream &stream, llvm::StringRef style) const;
   friend struct llvm::format_provider<ExprBase<ExprT>>;
 };
 
@@ -65,7 +66,11 @@ private:
 
   const llvm::ArrayRef<ExprT> SubExprs() const override { return exprs_; }
 
+  void Format(llvm::raw_ostream &stream, llvm::StringRef style) const override;
+
   std::vector<ExprT> exprs_;
+
+  friend struct llvm::format_provider<Call<ExprT>>;
 };
 
 template <typename ExprT = Expression> class If final : public ExprBase<ExprT> {
@@ -130,7 +135,7 @@ private:
     }
   }
 
-  std::unique_ptr<const ExprT> value_;
+  const ExprT value_;
 };
 
 /*
@@ -313,23 +318,6 @@ struct ModuleDecl final {
   void SetName(const Symbol &name) noexcept { this->name = &name; }
 };
 
-struct ExprId final {
-  const Symbol *module_name;
-  std::uint64_t id;
-
-  static ExprId Default() { return ExprId{nullptr, 0}; }
-
-  std::size_t ToKey() const {
-    // TODO: Add module name
-    return id;
-  }
-
-  friend bool operator==(const ExprId &lhs, const ExprId &rhs) {
-    // TODO: Add module name
-    return lhs.id == rhs.id;
-  }
-};
-
 using Call = exprs::Call<Expression>;
 using If = exprs::If<Expression>;
 using Fn = exprs::Fn<Expression>;
@@ -376,28 +364,19 @@ public:
 
   Expression() : kind_(compiler::Constant(Nil::Get())) {}
 
-  // Non-copyable
+  // Copyable
   Expression(const Expression &) = delete;
-  Expression &operator=(const Expression &&) = delete;
+  Expression &operator=(const Expression &) = delete;
 
   // Movable
   Expression(Expression &&) = default;
   Expression &operator=(Expression &&) = default;
 
-  // Constructs an "unattached" Expression.
-  explicit Expression(Kind kind)
-      : kind_(std::move(kind)), id_(ExprId::Default()) {}
+  explicit Expression(Kind kind) : kind_(std::move(kind)) {}
 
-  Expression(Kind &kind, const ExprId id) : kind_(std::move(kind)), id_(id) {}
-  Expression(Kind &&kind, const ExprId id) : kind_(std::move(kind)), id_(id) {}
+  static Expression Literal(compiler::Constant x) { return Expression(x); }
 
-  static Expression Literal(compiler::Constant x, const ExprId id) {
-    return Expression(x, id);
-  }
-
-  static Expression Name(const Symbol *x, const ExprId id) {
-    return Expression(x, id);
-  }
+  static Expression Name(const Symbol *x) { return Expression(x); }
 
   bool operator==(const Expression &rhs) const {
     return this->kind_ == rhs.kind_;
@@ -426,8 +405,6 @@ public:
     return std::visit(f, kind_);
   }
 
-  const ExprId &Id() const noexcept { return id_; }
-
   std::optional<Assignable> AsAssignable() {
     return std::visit(
         [&]<typename T>(T &&v) -> std::optional<Assignable> {
@@ -444,21 +421,8 @@ public:
 
 private:
   Kind kind_;
-  ExprId id_;
 };
 
 } // namespace dub
-
-template <> struct llvm::DenseMapInfo<dub::ExprId> {
-  static inline dub::ExprId getEmptyKey() { return dub::ExprId::Default(); }
-  static inline dub::ExprId getTombstoneKey() {
-    return dub::ExprId{nullptr, static_cast<std::uint64_t>(-1)};
-  }
-  static unsigned getHashValue(const dub::ExprId &val) { return val.ToKey(); }
-
-  static bool isEqual(const dub::ExprId &LHS, const dub::ExprId &RHS) {
-    return LHS == RHS;
-  }
-};
 
 #endif /* DUB_EXPRESSION_H_ */

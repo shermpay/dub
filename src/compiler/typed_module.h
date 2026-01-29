@@ -1,6 +1,7 @@
 #ifndef DUB_COMPILER_TYPED_MODULE_H_
 #define DUB_COMPILER_TYPED_MODULE_H_
 
+#include "src/compiler/expression.h"
 #include "src/compiler/module.h"
 #include "src/compiler/type.h"
 #include "src/compiler/type_info.h"
